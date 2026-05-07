@@ -1,8 +1,7 @@
 # miradex-web
 
 Static Next.js 16 frontend for cross-chain swaps. The whole
-app is a thin shell over `@miradexio/client`: keygen,
-signing, deposit verification, and sweep all run client-side.
+app is a thin shell over [`@miradexio/client`](https://github.com/miradexio/miradex-client): keygen, signing, deposit verification, and sweep all run client-side.
 The server is a proxy, not a custodian.
 
 The app exposes one route, `/swap`, with two views: a quote
@@ -10,19 +9,6 @@ form (pick pair, enter amount, get quotes across all
 providers, confirm) and an active-swap view (deposit address,
 QR, pipeline progress, sweep). Per-provider trust models and
 the BTC↔XMR atomic-swap protocol live in the SDK docs.
-
----
-
-## Stack
-
-Next.js 16 (`output: 'export'`), React 19, Tailwind v4,
-shadcn on Radix. TanStack Query for server state, IndexedDB
-via `idb` for keystores and history,
-`@miradexio/client` + WASM for crypto. Bitcoin and Monero
-queries hit CORS-allowed electrs and monerod endpoints
-directly from the browser; libp2p is delegated to the
-gateway. Build with `next build --webpack` so WASM works
-(`experiments.asyncWebAssembly: true` in `next.config.ts`).
 
 ---
 
