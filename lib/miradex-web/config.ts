@@ -12,7 +12,7 @@ const DEFAULT_NETWORK: Network = "mainnet";
 // lookup with retries). 60s = headroom without being slow-hang-tolerant.
 const DEFAULT_API_TIMEOUT_MS = 60_000;
 const DEFAULT_API_MAX_RETRIES = 3;
-const DEFAULT_SLIPPAGE_BPS = 100;
+const DEFAULT_SLIPPAGE_BPS = 300;
 
 function nonEmpty(value: string | undefined): string | undefined {
   return value !== undefined && value.length > 0 ? value : undefined;

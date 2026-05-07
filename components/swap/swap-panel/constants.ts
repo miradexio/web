@@ -8,7 +8,7 @@ import type {
   TagStyle,
 } from "./types";
 
-export const DEFAULT_SLIPPAGE = 1;
+export const DEFAULT_SLIPPAGE = 3;
 
 export const SLIPPAGE_PRESETS: readonly number[] = [0.5, 1, 1.5, 3];
 
