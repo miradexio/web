@@ -53,20 +53,15 @@ const nextConfig: NextConfig = {
     // Update both lists together when adding/removing operators.
     const PROD_CONNECT_SRC = [
       "'self'",
-      "https://swapper.sudobots.xyz",
-      // THORChain mainnet verification — both gateway and direct hosts
-      // are tried by the SDK; keep both allowed (`thorchain-networks.ts`
-      // is the source of truth, mirror it here).
+      "https://api.miradex.io",
+     
       "https://gateway.liquify.com",
       "https://thornode.thorchain.network",
       "https://midgard.thorchain.network",
-      // Chainflip mainnet verification.
       "https://chainflip-swap.chainflip.io",
       "https://chainflip-broker.io",
-      // Near-intents 1Click solver.
       "https://1click.chaindefuser.com",
-      // Monero mainnet RPC nodes (browser-direct — proxy is testnet-only;
-      // see `MONERO_MAINNET_NODES` in the SDK's default-config.ts).
+     
       "https://node.sethforprivacy.com",
       "https://dewitte.fiatfaucet.com",
       "https://chad.fiatfaucet.com",
