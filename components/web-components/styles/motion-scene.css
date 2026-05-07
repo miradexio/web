@@ -1,0 +1,24 @@
+/* NightScene atmospheric animations: twinkle (stars, status dots),
+   flicker (formerly campfire), storm drift (cloud layers). */
+
+.ns-twinkle {
+  animation: ns-twinkle 3s ease-in-out infinite;
+}
+
+.ns-flicker {
+  animation: ns-flicker 1.4s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+
+@keyframes ns-storm-drift-a {
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(-22px); }
+}
+
+@keyframes ns-storm-drift-b {
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(18px); }
+}
+
+.ns-storm-drift-a { animation: ns-storm-drift-a 14s ease-in-out infinite; }
+.ns-storm-drift-b { animation: ns-storm-drift-b 11s ease-in-out infinite; }

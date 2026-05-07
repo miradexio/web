@@ -1,0 +1,97 @@
+import { formatNumber, formatUsd } from "../../web-components/swap-shared";
+import { Chip } from "./chip";
+import { TAG_PRIORITY } from "./constants";
+import { getProviderDisplay } from "./helpers";
+import { ProviderIcon } from "./provider-icon";
+import { TagBadge } from "./tag-badge";
+import type { RouteTag } from "./types";
+import type { Quote } from "../../web-components/types";
+
+type SelectedRouteCardProps = {
+  readonly quote: Quote;
+  readonly toCoin: string;
+  readonly tags: ReadonlySet<RouteTag>;
+};
+
+function computeFeeUsd(quote: Quote, minerFeeNum: number): number | null {
+  // `minerFee` is the sum of `quote.fees[].amount`, which the server returns
+  // denominated in the *destination* asset (e.g. ETH for a BTC→ETH swap).
+  // So price it with the destination USD rate, not the source — multiplying
+  // ETH-units by the BTC USD rate gives nonsense (~76× the real fee).
+  const toAmount = parseFloat(quote.toAmount);
+  if (!quote.toAmountUsd || !(toAmount > 0)) return null;
+  const toUsdRate = parseFloat(quote.toAmountUsd) / toAmount;
+  return toUsdRate > 0 ? minerFeeNum * toUsdRate : null;
+}
+
+export function SelectedRouteCard({ quote, toCoin, tags }: SelectedRouteCardProps) {
+  const display = getProviderDisplay(quote.provider);
+  const variantTag =
+    quote.variantLabel && quote.variantLabel.toLowerCase() !== "regular"
+      ? quote.variantLabel
+      : null;
+  const impact = quote.priceImpactPct ? parseFloat(quote.priceImpactPct) : null;
+  const minerFeeNum = parseFloat(quote.minerFee);
+  const feeUsd = minerFeeNum > 0 ? computeFeeUsd(quote, minerFeeNum) : null;
+  const activeTags = TAG_PRIORITY.filter((t) => tags.has(t));
+
+  return (
+    <div className="relative mt-1 rounded-2xl border border-line-2 bg-bg/60 p-4 backdrop-blur-md">
+      <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full border border-green/50 bg-bg/95 px-3 py-1 font-mono text-[9px] font-semibold uppercase tracking-[0.18em] text-green backdrop-blur">
+        Selected route
+      </div>
+
+      <div className="mt-1 flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2.5">
+          <ProviderIcon provider={quote.provider} size={32} />
+          <div>
+            <div className="text-[15px] font-semibold text-ink">{display.label}</div>
+            <div className="mt-0.5 font-mono text-[10px] text-ink-mid">{quote.estimatedTime}</div>
+          </div>
+        </div>
+        {variantTag && (
+          <span className="rounded-full border border-accent/40 bg-accent/15 px-2.5 py-1 font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-accent">
+            {variantTag}
+          </span>
+        )}
+      </div>
+
+      <div className="mt-3">
+        <div className="text-[24px] font-semibold tracking-[-0.02em] text-ink">
+          {formatNumber(quote.toAmount, 6)} {toCoin}
+        </div>
+        {quote.toAmountUsd && (
+          <div className="mt-0.5 font-mono text-[11px] text-ink-mid">
+            {formatUsd(quote.toAmountUsd)}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-line pt-3">
+        {minerFeeNum > 0 && (
+          <Chip variant="fee">
+            {feeUsd !== null
+              ? `$${feeUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              : `$${formatNumber(quote.minerFee, 4)}`}{" "}
+            fee
+          </Chip>
+        )}
+        <Chip variant="time">{quote.estimatedTime}</Chip>
+        {impact !== null && !Number.isNaN(impact) && (
+          <Chip variant="impact">
+            {impact > 0 ? "+" : ""}
+            {impact.toFixed(2)}%
+          </Chip>
+        )}
+      </div>
+
+      {activeTags.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {activeTags.map((t) => (
+            <TagBadge key={t} tag={t} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

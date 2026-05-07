@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+@source "../components/web-components/**/*.{ts,tsx}";
+
+@import "../components/web-components/styles/tokens.css";
+@import "../components/web-components/styles/base.css";
+@import "../components/web-components/styles/typography.css";
+@import "../components/web-components/styles/motion-scene.css";

@@ -1,0 +1,60 @@
+{
+  "name": "@miradexio/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./web-components/icons": "./components/web-components/icons.tsx",
+    "./web-components/night-scene": "./components/web-components/night-scene/index.tsx",
+    "./web-components/swap-shared": "./components/web-components/swap-shared/index.ts",
+    "./web-components/token-picker-modal": "./components/web-components/token-picker-modal/index.tsx",
+    "./web-components/types": "./components/web-components/types.ts",
+    "./web-components/utils": "./components/web-components/utils.ts",
+    "./web-components/styles/tokens.css": "./components/web-components/styles/tokens.css",
+    "./web-components/styles/base.css": "./components/web-components/styles/base.css",
+    "./web-components/styles/typography.css": "./components/web-components/styles/typography.css",
+    "./web-components/styles/motion-scene.css": "./components/web-components/styles/motion-scene.css"
+  },
+  "scripts": {
+    "dev": "next dev --webpack -p 3002",
+    "build": "next build --webpack",
+    "start": "next start -p 3002",
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@miradexio/client": "0.1.1",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@tanstack/react-query": "^5.90.21",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "idb": "^8.0.0",
+    "lucide-react": "^0.577.0",
+    "next": "16.1.6",
+    "next-themes": "^0.4.6",
+    "qrcode": "^1.5.4",
+    "qrcode.react": "^4.2.0",
+    "radix-ui": "^1.4.3",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.5.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "fake-indexeddb": "^6.0.0",
+    "jsdom": "^25.0.1",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^2.1.4"
+  }
+}

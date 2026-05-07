@@ -1,0 +1,58 @@
+/* Editorial typography utilities: page shell, hero/section headings, lede, eyebrow. */
+
+@layer utilities {
+  .shell {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 28px;
+    position: relative;
+  }
+
+  .h-display {
+    font-size: clamp(28px, 4vw, 62px);
+    line-height: 1.02;
+    letter-spacing: -0.04em;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .h-display em {
+    font-family: var(--font-instrument-serif), serif;
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+  }
+
+  .h-section {
+    font-size: clamp(20px, 2.4vw, 32px);
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .h-section em {
+    font-family: var(--font-instrument-serif), serif;
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: -0.015em;
+  }
+
+  .lede {
+    font-size: 18px;
+    line-height: 1.5;
+    color: var(--ink-mid);
+    letter-spacing: -0.005em;
+    max-width: 540px;
+  }
+
+  .eyebrow {
+    font-family: var(--font-geist-mono), monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .eyebrow .num { color: var(--ink); font-weight: 500; }
+}
