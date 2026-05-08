@@ -52,3 +52,5 @@ next-env.d.ts
 
 # scratch / agent artifacts
 .agent
+
+package-lock.json

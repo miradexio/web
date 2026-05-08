@@ -97,7 +97,7 @@ const FOOTER_LINKS: readonly FooterLink[] = [
   },
   {
     label: 'X',
-    href: 'https://x.com/miradexIO',
+    href: 'https://x.com/MiraDex',
     icon: <XIcon />,
   },
 ];

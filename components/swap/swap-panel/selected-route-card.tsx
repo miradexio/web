@@ -13,17 +13,6 @@ type SelectedRouteCardProps = {
   readonly tags: ReadonlySet<RouteTag>;
 };
 
-function computeFeeUsd(quote: Quote, minerFeeNum: number): number | null {
-  // `minerFee` is the sum of `quote.fees[].amount`, which the server returns
-  // denominated in the *destination* asset (e.g. ETH for a BTC→ETH swap).
-  // So price it with the destination USD rate, not the source — multiplying
-  // ETH-units by the BTC USD rate gives nonsense (~76× the real fee).
-  const toAmount = parseFloat(quote.toAmount);
-  if (!quote.toAmountUsd || !(toAmount > 0)) return null;
-  const toUsdRate = parseFloat(quote.toAmountUsd) / toAmount;
-  return toUsdRate > 0 ? minerFeeNum * toUsdRate : null;
-}
-
 export function SelectedRouteCard({ quote, toCoin, tags }: SelectedRouteCardProps) {
   const display = getProviderDisplay(quote.provider);
   const variantTag =
@@ -31,8 +20,6 @@ export function SelectedRouteCard({ quote, toCoin, tags }: SelectedRouteCardProp
       ? quote.variantLabel
       : null;
   const impact = quote.priceImpactPct ? parseFloat(quote.priceImpactPct) : null;
-  const minerFeeNum = parseFloat(quote.minerFee);
-  const feeUsd = minerFeeNum > 0 ? computeFeeUsd(quote, minerFeeNum) : null;
   const activeTags = TAG_PRIORITY.filter((t) => tags.has(t));
 
   return (
@@ -68,14 +55,6 @@ export function SelectedRouteCard({ quote, toCoin, tags }: SelectedRouteCardProp
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-line pt-3">
-        {minerFeeNum > 0 && (
-          <Chip variant="fee">
-            {feeUsd !== null
-              ? `$${feeUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-              : `$${formatNumber(quote.minerFee, 4)}`}{" "}
-            fee
-          </Chip>
-        )}
         <Chip variant="time">{quote.estimatedTime}</Chip>
         {impact !== null && !Number.isNaN(impact) && (
           <Chip variant="impact">

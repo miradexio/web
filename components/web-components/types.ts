@@ -34,7 +34,6 @@ export interface Quote {
   toAmountUsd?: string;
   rate: number;
   fees: QuoteFee[];
-  minerFee: string; // Aggregate of network/miner fees
   estimatedTime: string;
   estimatedDurationSeconds?: number;
   minAmount?: string | null;
