@@ -107,12 +107,15 @@ export interface EngineRegistryOptions {
   ) => MiradexEngine;
 }
 
+const MAX_STALLED_REBUILDS = 3;
+
 export class EngineRegistry {
   private readonly engines: Map<string, MiradexEngine> = new Map();
   private readonly bySwapId: Map<string, string> = new Map();
   private readonly byKeystoreId: Map<string, string> = new Map();
   private readonly indexBindings: Map<string, () => void> = new Map();
   private readonly pendingResume: Map<string, Promise<void>> = new Map();
+  private readonly stalledRebuilds: Map<string, number> = new Map();
   private readonly listeners: Set<() => void> = new Set();
   private readonly engineConfig: EngineConfig;
   private readonly adapter: PlatformAdapter;
@@ -204,7 +207,17 @@ export class EngineRegistry {
   }
 
   async resume(idOrFlowId: string): Promise<void> {
-    if (this.resolveFlowId(idOrFlowId) !== null) return;
+    const existingFlowId = this.resolveFlowId(idOrFlowId);
+    if (existingFlowId !== null) {
+      const engine = this.engines.get(existingFlowId);
+      const phase = (engine?.state.atomic.phase as string | undefined) ?? "";
+      if (phase !== "stalled") return;
+      const rebuildKey = existingFlowId;
+      const attempts = this.stalledRebuilds.get(rebuildKey) ?? 0;
+      if (attempts >= MAX_STALLED_REBUILDS) return;
+      this.stalledRebuilds.set(rebuildKey, attempts + 1);
+      this.destroy(existingFlowId);
+    }
     const inflight = this.pendingResume.get(idOrFlowId);
     if (inflight !== undefined) return inflight;
     const work = this.resumeFresh(idOrFlowId);

@@ -62,9 +62,6 @@ export function useQuote({
           fromAmountUsd: response.amountInUsd ?? undefined,
           toAmountUsd: q.expectedOutputUsd ?? undefined,
           rate: parseFloat(q.expectedOutput) / amount,
-          // Server now emits per-fee `amountUsd`, but the installed
-          // @miradexio/client schema doesn't surface it yet. Pin to undefined
-          // until the SDK is bumped — no UI consumes fee USD right now.
           fees: q.fees.map((f) => ({ ...f, amountUsd: undefined })),
           estimatedTime:
             durationSecs !== null ? `${String(Math.ceil(durationSecs / 60))}m` : "10-20m",

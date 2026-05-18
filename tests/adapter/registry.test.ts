@@ -160,6 +160,107 @@ describe("EngineRegistry: secondary index population", () => {
   });
 });
 
+describe("EngineRegistry: stalled rebuild on resume", () => {
+  it("destroys + rebuilds the engine when resume() is called on a stalled atomic flow", async () => {
+    let factoryCalls = 0;
+    let lastFake: ReturnType<typeof createFakeEngine> | undefined;
+    const factory = () => {
+      factoryCalls++;
+      lastFake = createFakeEngine();
+      return lastFake.engine;
+    };
+    const registry = new EngineRegistry({ engineFactory: factory });
+
+    const startPromise = registry.startAtomicSwap({
+      amount: "0.01",
+      destAddress: "x",
+      refundAddress: "y",
+    });
+    await Promise.resolve();
+    const ks = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
+    lastFake!.emitState({
+      atomic: {
+        phase: "keystore-saved",
+        snapshot: makeSnapshot({ keystoreId: ks }),
+        message: "ks",
+      },
+    });
+    const { flowId } = await startPromise;
+    expect(factoryCalls).toBe(1);
+
+    lastFake!.emitState({
+      atomic: {
+        phase: "stalled",
+        snapshot: makeSnapshot({ keystoreId: ks }),
+        error: "network blip",
+        swapId: null,
+        keystoreId: ks,
+      } as never,
+    });
+
+    await registry.resume(flowId);
+
+    expect(factoryCalls).toBe(2);
+    expect(lastFake!.calls.map((c) => c.method)).toContain("resumeAtomicSwap");
+  });
+
+  it("stops rebuilding after the cap (3 attempts) is reached", async () => {
+    let factoryCalls = 0;
+    let lastFake: ReturnType<typeof createFakeEngine> | undefined;
+    const factory = () => {
+      factoryCalls++;
+      lastFake = createFakeEngine();
+      return lastFake.engine;
+    };
+    const registry = new EngineRegistry({ engineFactory: factory });
+
+    const startPromise = registry.startAtomicSwap({
+      amount: "0.01",
+      destAddress: "x",
+      refundAddress: "y",
+    });
+    await Promise.resolve();
+    const ks = "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff";
+    lastFake!.emitState({
+      atomic: {
+        phase: "keystore-saved",
+        snapshot: makeSnapshot({ keystoreId: ks }),
+        message: "ks",
+      },
+    });
+    await startPromise;
+    expect(factoryCalls).toBe(1);
+
+    const emitStalled = (): void => {
+      lastFake!.emitState({
+        atomic: {
+          phase: "stalled",
+          snapshot: makeSnapshot({ keystoreId: ks }),
+          error: "blip",
+          swapId: null,
+          keystoreId: ks,
+        } as never,
+      });
+    };
+
+    emitStalled();
+    await registry.resume(ks);
+    expect(factoryCalls).toBe(2);
+
+    emitStalled();
+    await registry.resume(ks);
+    expect(factoryCalls).toBe(3);
+
+    emitStalled();
+    await registry.resume(ks);
+    expect(factoryCalls).toBe(4);
+
+    emitStalled();
+    await registry.resume(ks);
+    expect(factoryCalls).toBe(4);
+  });
+});
+
 describe("EngineRegistry: destroy cleans both indexes", () => {
   it("removes engine + all index entries when destroying an atomic flow", async () => {
     const fakes = captureFake();
