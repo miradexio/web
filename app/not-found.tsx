@@ -5,11 +5,14 @@ import { ArrowIcon } from "../components/web-components/icons";
 export default function NotFound() {
   return (
     <div className="relative flex-1 overflow-hidden">
-      <div className="absolute inset-0 -mt-[68px]">
+      <div
+        className="pointer-events-none fixed inset-0 z-0"
+        style={{ contain: "paint", willChange: "transform" }}
+      >
         <NightScene />
       </div>
 
-      <div className="relative z-10 shell flex min-h-[calc(100vh-68px)] flex-col justify-center py-20">
+      <div className="relative z-10 shell flex min-h-[calc(100svh-68px)] flex-col justify-center py-20">
         <div className="max-w-[640px]">
           <div className="mb-2 font-mono text-[14px] uppercase tracking-[0.2em] text-accent">
             Route not found

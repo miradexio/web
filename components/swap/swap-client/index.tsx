@@ -21,6 +21,8 @@ import { PairSummary } from "./pair-summary";
 import { PendingPanel } from "./pending-panel";
 import { Pipeline } from "./pipeline";
 import { ReceiptTwoUp } from "./receipt-two-up";
+import { ReviewLinksCard } from "./review-links-card";
+import { shouldShowReviewLinks } from "./review-links";
 import {
   AtomicBetaWarning,
   isAtomicBetaAcked,
@@ -442,6 +444,7 @@ export default function SwapClient(): React.JSX.Element {
           sourceUrl={view.verificationSourceUrl}
           isActive={!isTerminal}
         />
+        {shouldShowReviewLinks(view.phase) && <ReviewLinksCard />}
       </aside>
 
       {((showImportPrompt && importPromptOpen) || manualImportOpen) && view.swapNumber && (

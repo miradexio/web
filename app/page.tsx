@@ -25,8 +25,11 @@ function SwapBody(): React.JSX.Element {
 
 export default function SwapPage(): React.JSX.Element {
   return (
-    <section className="relative -mt-[68px] flex min-h-screen items-center justify-center overflow-hidden bg-[#0E1228]">
-      <div className="absolute inset-0 z-0">
+    <section className="relative -mt-[68px] flex min-h-svh items-center justify-center overflow-hidden bg-[#0E1228]">
+      <div
+        className="pointer-events-none fixed inset-0 z-0"
+        style={{ contain: "paint", willChange: "transform" }}
+      >
         <NightScene />
       </div>
 
