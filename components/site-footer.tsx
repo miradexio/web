@@ -3,6 +3,33 @@ type IconProps = {
   readonly className?: string;
 };
 
+function DocsIcon({ size = 14, className }: IconProps): React.JSX.Element {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M3 2.8c0-.72.58-1.3 1.3-1.3H13v11H4.2A1.7 1.7 0 0 0 2.5 14.2V3.3c0-.28.22-.5.5-.5Z"
+        stroke="currentColor"
+        strokeWidth={1.35}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M5.2 4.5h5.2M5.2 7h4.2"
+        stroke="currentColor"
+        strokeWidth={1.35}
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 function SdkIcon({ size = 14, className }: IconProps): React.JSX.Element {
   return (
     <svg
@@ -81,6 +108,11 @@ type FooterLink = {
 
 const FOOTER_LINKS: readonly FooterLink[] = [
   {
+    label: 'Docs',
+    href: 'https://docs.miradex.io',
+    icon: <DocsIcon />,
+  },
+  {
     label: 'SDK',
     href: 'https://github.com/miradexio/miradex-client',
     icon: <SdkIcon />,
@@ -105,25 +137,27 @@ const FOOTER_LINKS: readonly FooterLink[] = [
 export function SiteFooter(): React.JSX.Element {
   return (
     <footer className="absolute inset-x-0 bottom-0 z-20">
-      <nav
-        aria-label="Footer"
-        className="mx-auto grid w-fit grid-cols-4 items-center gap-x-7 px-6 py-4 sm:gap-x-9 md:px-10"
-      >
-        {FOOTER_LINKS.map(({ label, href, icon }) => (
-          <a
-            key={href}
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group inline-flex items-center justify-center gap-2 text-[13px] tracking-wide text-black/80 transition-colors duration-200 hover:text-black"
-          >
-            <span className="text-black/70 transition-colors duration-200 group-hover:text-black">
-              {icon}
-            </span>
-            <span>{label}</span>
-          </a>
-        ))}
-      </nav>
+      <div className="mx-auto w-full max-w-[1280px] px-6 py-4 md:px-10 lg:-translate-x-10 xl:-translate-x-16">
+        <nav
+          aria-label="Footer"
+          className="mx-auto flex w-full max-w-[480px] items-center justify-start gap-x-7 sm:gap-x-9 lg:max-w-none lg:pl-[348px]"
+        >
+          {FOOTER_LINKS.map(({ label, href, icon }) => (
+            <a
+              key={href}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group inline-flex items-center gap-2 text-[13px] tracking-wide text-black/80 transition-colors duration-200 hover:text-black"
+            >
+              <span className="text-black/70 transition-colors duration-200 group-hover:text-black">
+                {icon}
+              </span>
+              <span>{label}</span>
+            </a>
+          ))}
+        </nav>
+      </div>
     </footer>
   );
 }
