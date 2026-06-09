@@ -54,14 +54,14 @@ const nextConfig: NextConfig = {
     const PROD_CONNECT_SRC = [
       "'self'",
       "https://api.miradex.io",
-     
+
       "https://gateway.liquify.com",
       "https://thornode.thorchain.network",
       "https://midgard.thorchain.network",
       "https://chainflip-swap.chainflip.io",
       "https://chainflip-broker.io",
       "https://1click.chaindefuser.com",
-     
+
       "https://node.sethforprivacy.com",
       "https://dewitte.fiatfaucet.com",
       "https://chad.fiatfaucet.com",

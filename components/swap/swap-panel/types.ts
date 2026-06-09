@@ -4,20 +4,12 @@ export type SortMode = "default" | "best" | "fastest";
 
 export type ProtocolFilter = "all" | "thorchain" | "chainflip" | "near_intents" | "atomicswap";
 
-export type ProviderGrade = "S" | "A+" | "A" | "A-" | "B";
-
 export type RouteTag = "best" | "fastest";
 
 export type ProviderInfo = {
   readonly label: string;
   readonly color: string;
   readonly logo?: string;
-};
-
-export type ProviderRating = {
-  readonly grade: ProviderGrade;
-  readonly provider: string;
-  readonly body: string;
 };
 
 export type ProviderGroup = {

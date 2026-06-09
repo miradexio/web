@@ -1,6 +1,6 @@
-import type { SwapKeystore } from "@miradexio/client";
+import type { SwapKeystore } from '@miradexio/client';
 
-export type Protocol = "chainflip" | "thorchain" | "near-intents";
+export type Protocol = 'chainflip' | 'thorchain' | 'near-intents';
 
 export interface Token {
   coin: string;
@@ -40,7 +40,7 @@ export interface Quote {
   maxAmount?: string | null;
   priceImpactPct?: string;
   recommendedSlippageBps?: number;
-  source: "cache" | "live" | "stale";
+  source: 'cache' | 'live' | 'stale';
   precision?: string;
   competitors?: Competitor[];
 }
@@ -72,17 +72,17 @@ export interface SwapRequest {
 }
 
 export type TradeStatus =
-  | "awaiting"
-  | "received"
-  | "converting"
-  | "sending"
-  | "complete"
-  | "failed";
+  | 'awaiting'
+  | 'received'
+  | 'converting'
+  | 'sending'
+  | 'complete'
+  | 'failed';
 
 export interface TradeStep {
   step: number;
   label: string;
-  status: "pending" | "active" | "done" | "failed";
+  status: 'pending' | 'active' | 'done' | 'failed';
   timestamp?: string;
   txHash?: string;
 }
@@ -118,7 +118,6 @@ export interface Trade {
 
 export interface RecentSwap {
   id: string;
-  swapNumber: string;
   fromCoin: string;
   fromNetwork: string;
   toCoin: string;

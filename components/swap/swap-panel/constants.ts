@@ -2,7 +2,6 @@ import type {
   Headline,
   ProtocolOption,
   ProviderInfo,
-  ProviderRating,
   RouteTag,
   SortOption,
   TagStyle,
@@ -33,37 +32,26 @@ export const HEADLINES: readonly Headline[] = [
   { label: "No wallet connect", dot: "bg-[#E8C25A]" },
 ];
 
-export const PROVIDER_RATINGS: readonly ProviderRating[] = [
-  {
-    grade: "S",
-    provider: "Atomic Swaps",
-    body: "Peer-to-peer cryptographic swap, mediated by no one. 100% non-custodial. No KYC, no AML.",
-  },
-  {
-    grade: "A+",
-    provider: "THORChain",
-    body: "Decentralized cross-chain network. 100% non-custodial. No KYC, no AML.",
-  },
-  {
-    grade: "A",
-    provider: "Chainflip",
-    body: "Decentralized network with broker-level screening. May reject deposits — never holds custody.",
-  },
-  {
-    grade: "A-",
-    provider: "NEAR Intents",
-    body: "Routed through bridges with their own AML rules. Can reject and refund pre-quote.",
-  },
-];
-
 // `NEXT_PUBLIC_BASE_PATH` is "/swap" in this app — it mirrors `basePath` so
 // that asset URLs resolve under nginx (where the SPA lives at /swap/...).
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 export const PROVIDER_DISPLAY: Readonly<Record<string, ProviderInfo>> = {
-  chainflip: { label: "Chainflip", color: "bg-[#46DAA0]", logo: `${BASE}/coin-icons/Chainflip.png` },
-  thorchain: { label: "THORChain", color: "bg-[#23DBA8]", logo: `${BASE}/coin-icons/THORChain.svg` },
-  near_intents: { label: "NEAR Intents", color: "bg-[#7B7BFA]", logo: `${BASE}/coin-icons/near-coin.svg` },
+  chainflip: {
+    label: "Chainflip",
+    color: "bg-[#46DAA0]",
+    logo: `${BASE}/coin-icons/Chainflip.png`,
+  },
+  thorchain: {
+    label: "THORChain",
+    color: "bg-[#23DBA8]",
+    logo: `${BASE}/coin-icons/THORChain.svg`,
+  },
+  near_intents: {
+    label: "NEAR Intents",
+    color: "bg-[#7B7BFA]",
+    logo: `${BASE}/coin-icons/near-coin.svg`,
+  },
   atomicswap: { label: "Atomic Swap", color: "bg-[#F2A55C]" },
 };
 

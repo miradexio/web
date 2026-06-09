@@ -7,11 +7,12 @@ import { AddressInput } from "./address-input";
 import { EmptyRoutes } from "./empty-routes";
 import { HeadlinesCard } from "./headlines-card";
 import { OtherRoutesList } from "./other-routes-list";
-import { ProviderRatingCard } from "./provider-rating-card";
+import { RecentSwapsCard } from "./recent-swaps-card";
 import { RoutesHeader } from "./routes-header";
 import { SelectedRouteCard } from "./selected-route-card";
 import { SettingsPopover } from "./settings-popover";
 import { SwapModeComparison } from "./swap-mode-comparison";
+import { TrustpilotCard } from "./trustpilot-card";
 import { SWAP_FORM_QUOTE_ID, useSwapForm } from "./use-swap-form";
 
 export function SwapPanel() {
@@ -22,13 +23,14 @@ export function SwapPanel() {
       <div
         className={
           form.enabled
-            ? "grid w-full grid-cols-1 items-start gap-6 lg:grid-cols-[260px_minmax(0,480px)_320px] lg:gap-8"
-            : "grid w-full grid-cols-1 items-start gap-6 lg:grid-cols-[260px_minmax(0,480px)] lg:justify-center lg:gap-8"
+            ? "grid w-full grid-cols-1 items-start gap-6 lg:grid-cols-[320px_minmax(0,480px)_320px] lg:gap-8"
+            : "grid w-full grid-cols-1 items-start gap-6 lg:grid-cols-[320px_minmax(0,480px)] lg:justify-center lg:gap-8"
         }
       >
-        <aside className="order-3 flex flex-col gap-3 lg:order-1">
+        <aside className="order-3 mx-auto flex w-full max-w-[480px] flex-col gap-4 lg:order-1 lg:mx-0 lg:max-w-none lg:gap-3">
           <HeadlinesCard />
-          <ProviderRatingCard />
+          <RecentSwapsCard />
+          <TrustpilotCard />
         </aside>
         <div className="order-1 mx-auto w-full max-w-[480px] lg:order-2">
           <div className="relative rounded-2xl border border-bg/15 bg-surface p-5 text-bg">

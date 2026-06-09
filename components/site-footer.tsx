@@ -107,7 +107,7 @@ export function SiteFooter(): React.JSX.Element {
     <footer className="absolute inset-x-0 bottom-0 z-20">
       <nav
         aria-label="Footer"
-        className="mx-auto flex max-w-[1280px] flex-wrap items-center justify-center gap-x-7 gap-y-2 px-6 py-4 sm:gap-x-9 md:px-10"
+        className="mx-auto grid w-fit grid-cols-4 items-center gap-x-7 px-6 py-4 sm:gap-x-9 md:px-10"
       >
         {FOOTER_LINKS.map(({ label, href, icon }) => (
           <a
@@ -115,7 +115,7 @@ export function SiteFooter(): React.JSX.Element {
             href={href}
             target="_blank"
             rel="noopener noreferrer"
-            className="group inline-flex items-center gap-2 text-[13px] tracking-wide text-black/80 transition-colors duration-200 hover:text-black"
+            className="group inline-flex items-center justify-center gap-2 text-[13px] tracking-wide text-black/80 transition-colors duration-200 hover:text-black"
           >
             <span className="text-black/70 transition-colors duration-200 group-hover:text-black">
               {icon}
