@@ -10,6 +10,7 @@ import { findToken } from "../../web-components/swap-shared";
 import { readKeystore } from "@/lib/miradex-web/idb";
 import { DEFAULT_SLIPPAGE } from "./constants";
 import { validateAddress } from "./helpers";
+import { resolveRefundPolicy, type RefundPolicy } from "./refund-policy";
 import type { ProtocolFilter, ProviderGroup, RouteTag, SortMode } from "./types";
 
 const DEFAULT_AMOUNT = "0.1";
@@ -27,6 +28,8 @@ export type SwapFormState = {
   readonly refundAddr: string;
   readonly destError: string;
   readonly refundError: string;
+  readonly refundToDestination: boolean;
+  readonly refundPolicy: RefundPolicy;
   readonly slippage: number;
   readonly showSettings: boolean;
   readonly pickerTarget: PickerTarget;
@@ -48,6 +51,7 @@ export type SwapFormState = {
   readonly setAmount: (v: string) => void;
   readonly setDestAddr: (v: string) => void;
   readonly setRefundAddr: (v: string) => void;
+  readonly setRefundToDestination: (v: boolean) => void;
   readonly setSlippage: (s: number) => void;
   readonly setShowSettings: (s: boolean | ((v: boolean) => boolean)) => void;
   readonly setPickerTarget: (t: PickerTarget) => void;
@@ -145,6 +149,7 @@ export function useSwapForm(): SwapFormState {
   // uses ?reuseKeystore= below because it also has to bind a BTC funding key.
   const destAddressParam = searchParams.get("destAddress")?.trim() ?? null;
   const refundAddressParam = searchParams.get("refundAddress")?.trim() ?? null;
+  const hasUrlRefundAddress = refundAddressParam !== null && refundAddressParam.length > 0;
   // Restart-after-failure for atomic: bind the new swap to the existing
   // keystore (same key + funding address) so a still-funded BTC address
   // doesn't force a fresh deposit. UUID matches KeystoreRow.id.
@@ -157,6 +162,9 @@ export function useSwapForm(): SwapFormState {
   const [amount, setAmount] = useState(amountParam ?? DEFAULT_AMOUNT);
   const [destAddr, setDestAddr] = useState("");
   const [refundAddr, setRefundAddr] = useState("");
+  // A refund address arriving via URL (verification-failed restart) is an
+  // explicit choice — start unchecked so the prefilled field stays visible.
+  const [refundToDestination, setRefundToDestination] = useState(!hasUrlRefundAddress);
   const [pickerTarget, setPickerTarget] = useState<PickerTarget>(null);
   const [selectedQuoteId, setSelectedQuoteId] = useState<string | undefined>();
   const [slippage, setSlippage] = useState<number>(DEFAULT_SLIPPAGE);
@@ -218,10 +226,10 @@ export function useSwapForm(): SwapFormState {
     if (destAddressParam !== null && destAddressParam.length > 0) {
       setDestAddr((current) => current || destAddressParam);
     }
-    if (refundAddressParam !== null && refundAddressParam.length > 0) {
+    if (hasUrlRefundAddress && refundAddressParam !== null) {
       setRefundAddr((current) => current || refundAddressParam);
     }
-  }, [destAddressParam, refundAddressParam]);
+  }, [destAddressParam, refundAddressParam, hasUrlRefundAddress]);
 
   const amountNum = parseFloat(amount) || 0;
   const enabled = !!from && !!to && amountNum > 0;
@@ -277,14 +285,28 @@ export function useSwapForm(): SwapFormState {
   const destError = validateAddress(destAddr, to);
   const refundError = validateAddress(refundAddr, from);
 
+  const refundPolicy = useMemo(
+    () =>
+      resolveRefundPolicy({
+        from,
+        to,
+        hasSelectedQuote: !!activeQuote,
+        destAddr,
+        destError,
+        refundAddr,
+        refundError,
+        refundToDestination,
+      }),
+    [from, to, activeQuote, destAddr, destError, refundAddr, refundError, refundToDestination],
+  );
+
   const canSwap =
     !!from &&
     !!to &&
     !!activeQuote &&
     destAddr.length > 0 &&
     !destError &&
-    refundAddr.length > 0 &&
-    !refundError &&
+    refundPolicy.isRefundReady &&
     amountNum > 0 &&
     !swapMutation.isPending;
 
@@ -322,7 +344,7 @@ export function useSwapForm(): SwapFormState {
       toNetwork: to.network,
       amount: amountNum,
       toAddress: destAddr,
-      fromAddress: refundAddr,
+      fromAddress: refundPolicy.effectiveRefundAddress,
       slippage,
       selectedQuote: activeQuote,
       // Only honored by the SDK on atomic pairs. Null/absent = generate a
@@ -337,7 +359,7 @@ export function useSwapForm(): SwapFormState {
     to,
     amountNum,
     destAddr,
-    refundAddr,
+    refundPolicy,
     slippage,
     swapMutation,
     reuseKeystoreId,
@@ -354,6 +376,8 @@ export function useSwapForm(): SwapFormState {
     refundAddr,
     destError,
     refundError,
+    refundToDestination,
+    refundPolicy,
     slippage,
     showSettings,
     pickerTarget,
@@ -375,6 +399,7 @@ export function useSwapForm(): SwapFormState {
     setAmount,
     setDestAddr,
     setRefundAddr,
+    setRefundToDestination,
     setSlippage,
     setShowSettings,
     setPickerTarget,

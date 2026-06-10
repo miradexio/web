@@ -8,6 +8,7 @@ import { EmptyRoutes } from "./empty-routes";
 import { HeadlinesCard } from "./headlines-card";
 import { OtherRoutesList } from "./other-routes-list";
 import { RecentSwapsCard } from "./recent-swaps-card";
+import { RefundToDestinationToggle } from "./refund-to-destination-toggle";
 import { RoutesHeader } from "./routes-header";
 import { SelectedRouteCard } from "./selected-route-card";
 import { SettingsPopover } from "./settings-popover";
@@ -102,13 +103,23 @@ export function SwapPanel() {
                 onChange={form.setDestAddr}
                 error={form.destError}
               />
-              <AddressInput
-                label="Refund"
-                placeholder={`Refund address for ${form.from?.coin ?? ""}`}
-                value={form.refundAddr}
-                onChange={form.setRefundAddr}
-                error={form.refundError}
-              />
+              {form.refundPolicy.showRefundToDestinationToggle && (
+                <RefundToDestinationToggle
+                  checked={form.refundToDestination}
+                  coin={form.from?.coin ?? ""}
+                  onChange={form.setRefundToDestination}
+                />
+              )}
+              {form.refundPolicy.showRefundField && (
+                <AddressInput
+                  label="Refund"
+                  placeholder={`If the swap fails — Your ${form.from?.coin ?? ""} is Auto refunded.`}
+                  value={form.refundAddr}
+                  onChange={form.setRefundAddr}
+                  error={form.refundError}
+                  // helperText={`Only used if the swap fails — your ${form.from?.coin ?? ""} is returned here.`}
+                />
+              )}
             </div>
 
             <button
