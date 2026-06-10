@@ -2,82 +2,19 @@
 
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import type { EngineState } from "@miradexio/client";
 import { useEngineActions } from "@/hooks/use-engine-actions";
 import { SWAP_HISTORY_QUERY_KEY } from "@/hooks/use-swap-history";
 import { getRegistry } from "@/lib/miradex-web/registry";
 import { patchKeystoreSwapId } from "@/lib/miradex-web/idb";
 import {
+  buildAtomicHistoryRow,
+  extractSnapshot,
   isTerminalStatus,
   loadSwapHistory,
   saveSwapHistory,
+  snapshotsEqual,
   updateSwapHistory,
-  type SwapHistoryRow,
 } from "@/lib/storage/swap-history";
-
-interface SyncSnapshot {
-  readonly status: string;
-  readonly expiresAt: string | null;
-  readonly depositAddress: string | null;
-  readonly outputTxHash: string | null;
-  readonly serverSwapId: string | null;
-}
-
-function extractSnapshot(state: EngineState): SyncSnapshot {
-  const flow = state.activeFlow === "atomic" ? state.atomic : state.swap;
-  const snapshot = "snapshot" in flow ? flow.snapshot : null;
-  const outputTxHash =
-    "outputTxHash" in flow && typeof flow.outputTxHash === "string" ? flow.outputTxHash : null;
-  const serverSwapId =
-    state.atomic.snapshot?.swapId ?? state.swap.snapshot?.swapId ?? null;
-  return {
-    status: flow.phase,
-    expiresAt: snapshot?.expiresAt ?? null,
-    depositAddress: snapshot?.depositAddr ?? null,
-    outputTxHash,
-    serverSwapId,
-  };
-}
-
-function snapshotsEqual(prev: SwapHistoryRow, next: SyncSnapshot): boolean {
-  return (
-    prev.status === next.status &&
-    prev.expiresAt === next.expiresAt &&
-    prev.depositAddress === next.depositAddress &&
-    prev.outputTxHash === next.outputTxHash &&
-    // serverSwapId is monotonic: once set, it never reverts to null.
-    (next.serverSwapId === null || prev.serverSwapId === next.serverSwapId)
-  );
-}
-
-// Build the initial atomic-flow row when its serverSwapId arrives. Atomic
-// flows are always BTC->XMR via atomicswap, so coin/network/provider are fixed.
-function buildAtomicHistoryRow(
-  flowId: string,
-  state: EngineState,
-  next: SyncSnapshot,
-): SwapHistoryRow | null {
-  if (next.serverSwapId === null) return null;
-  const snap = state.atomic.snapshot;
-  return {
-    flowId,
-    serverSwapId: next.serverSwapId,
-    createdAt: new Date().toISOString(),
-    fromCoin: "BTC",
-    fromNetwork: "BTC",
-    fromAmount: snap?.depositAmount ?? "0",
-    fromAmountUsd: snap?.amountInUsd ?? null,
-    toCoin: "XMR",
-    toNetwork: "XMR",
-    toAmount: snap?.expectedOut ?? "0",
-    toAmountUsd: snap?.expectedOutUsd ?? null,
-    provider: "atomicswap",
-    status: next.status,
-    expiresAt: next.expiresAt,
-    depositAddress: next.depositAddress,
-    outputTxHash: next.outputTxHash,
-  };
-}
 
 export function useHistorySync(): null {
   const queryClient = useQueryClient();

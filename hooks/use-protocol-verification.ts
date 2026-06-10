@@ -7,7 +7,10 @@ import { verifyDepositAddress } from "@miradexio/client";
 export function useProtocolVerification(swapDetail: SwapDetail | null | undefined) {
   const verification = swapDetail?.verification;
   const depositAddress = swapDetail?.depositAddress;
-  const ready = swapDetail != null && verification != null && depositAddress != null;
+  // destAddress is null on restricted (ownership-proof-less) details; there
+  // is nothing to verify without it.
+  const destAddress = swapDetail?.destAddress;
+  const ready = swapDetail != null && verification != null && depositAddress != null && destAddress != null;
 
   return useQuery<VerificationResult | null>({
     queryKey: ["protocol-verify", swapDetail?.swapNumber],
@@ -16,12 +19,12 @@ export function useProtocolVerification(swapDetail: SwapDetail | null | undefine
       return verifyDepositAddress({
         depositAddress,
         verification,
-        destAddress: swapDetail.destAddress,
+        destAddress,
         refundAddress: swapDetail.refundAddress ?? "",
         toToken: swapDetail.toToken,
         amount: swapDetail.amountIn,
         expectedAmountOut: swapDetail.expectedAmountOut ?? undefined,
-        expectedDestAddress: swapDetail.destAddress,
+        expectedDestAddress: destAddress,
       });
     },
     enabled: ready,

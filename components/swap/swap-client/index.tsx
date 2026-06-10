@@ -29,17 +29,19 @@ import {
   markAtomicBetaAcked,
   unmarkAtomicBetaAcked,
 } from "./atomic-beta-warning";
+import { UnlockCard } from "./unlock-card";
+import { unlockPromptState } from "./unlock";
+import { isUnlockDismissed, markUnlockDismissed } from "@/lib/miradex-web/swap-proof";
 import { ShellMessage } from "./shell-message";
 import { ThorchainAmountWarning } from "./thorchain-amount-warning";
 import { VerificationCard } from "./verification-card";
 import { VerificationFailedCard } from "./verification-failed-card";
-import { phaseTone, pipelineStageOf, viewFromState } from "./view";
+import { phaseTone, pipelineStageOf, presentedPhase, viewFromState } from "./view";
 import type { FlowView } from "./types";
 
 const COPY_FEEDBACK_MS = 1400;
 
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function isUuidShape(s: string): boolean {
   return UUID_REGEX.test(s);
@@ -90,6 +92,18 @@ export default function SwapClient(): React.JSX.Element {
     readonly flowId: string;
     readonly amount: string;
   } | null>(null);
+  // Restricted-view unlock state, keyed by flowId (same pattern as
+  // thorchainAck) so nothing leaks across swaps without an effect-reset.
+  // `attempted` drives the "address doesn't match" hint: if the user
+  // submitted a proof and the view is STILL restricted after the rebuilt
+  // engine emits, the address was wrong. `reopened` overrides a persisted
+  // Skip for this render session; `dismissTick` re-reads localStorage.
+  const [unlockSession, setUnlockSession] = useState<{
+    readonly flowId: string;
+    readonly attempted: boolean;
+    readonly reopened: boolean;
+  } | null>(null);
+  const [unlockDismissTick, setUnlockDismissTick] = useState<number>(0);
 
   // Invalid URL params (e.g. ?id=<UUID> from an old bookmark) — bounce to
   // the swap form. No popups, no engine work.
@@ -146,11 +160,7 @@ export default function SwapClient(): React.JSX.Element {
     void (async () => {
       const row = await loadSwapHistoryEntry(flowId).catch(() => null);
       if (cancelled) return;
-      if (
-        row?.serverSwapId &&
-        row.serverSwapId.length > 0 &&
-        row.serverSwapId !== flowId
-      ) {
+      if (row?.serverSwapId && row.serverSwapId.length > 0 && row.serverSwapId !== flowId) {
         router.replace(`/?id=${encodeURIComponent(row.serverSwapId)}`);
       }
     })();
@@ -208,8 +218,35 @@ export default function SwapClient(): React.JSX.Element {
 
   const isTerminal = TERMINAL_PHASES.has(view.phase);
   const isCancelFlow = CANCEL_FLOW_PHASES.has(view.phase);
-  const stage = pipelineStageOf(view);
-  const tone = phaseTone(view.phase);
+  // Restricted pre-deposit swaps park on `creating-swap` in the SDK; present
+  // them as awaiting-deposit (label + pipeline stage) — see presentedPhase.
+  const displayPhase = presentedPhase(view);
+  const stage = pipelineStageOf({ ...view, phase: displayPhase });
+  const tone = phaseTone(displayPhase);
+
+  // Restricted (no ownership proof) prompt routing. Atomic swaps unlock by
+  // importing the keystore (it holds the receive address); everything else
+  // unlocks with the destination address. `unlockDismissTick` is read so a
+  // Skip persisted to localStorage re-renders immediately.
+  void unlockDismissTick;
+  const unlockAttempted = unlockSession?.flowId === flowId && unlockSession.attempted;
+  const unlockReopened = unlockSession?.flowId === flowId && unlockSession.reopened;
+  const unlockDismissed =
+    !unlockReopened && view.swapNumber !== null && isUnlockDismissed(view.swapNumber);
+  const unlockPrompt = unlockPromptState({
+    restricted: view.restricted,
+    provider: view.provider,
+    dismissed: unlockDismissed,
+  });
+  const handleUnlock = async (destAddress: string): Promise<void> => {
+    setUnlockSession({ flowId, attempted: true, reopened: unlockReopened });
+    await actions.unlock(flowId, destAddress);
+  };
+  const handleUnlockSkip = (): void => {
+    if (view.swapNumber !== null) markUnlockDismissed(view.swapNumber);
+    setUnlockSession({ flowId, attempted: false, reopened: false });
+    setUnlockDismissTick((t) => t + 1);
+  };
 
   // Foreign-browser detection for atomic swaps.
   //
@@ -233,236 +270,264 @@ export default function SwapClient(): React.JSX.Element {
     !isImportDismissed(view.swapNumber);
 
   return (
-    <div className="grid w-full grid-cols-1 items-start gap-6 lg:grid-cols-[260px_minmax(0,480px)_320px] lg:gap-8">
-      {/* LEFT — backup + brand pillars (continuity with /swap) */}
-      <aside className="order-3 flex flex-col gap-3 lg:order-1">
-        <BackupCard
-          kind={view.kind}
-          provider={view.provider}
-          keystoreId={view.keystoreId}
-          serverSwapId={view.serverSwapId}
-          phase={view.phase}
-          onImportKeystore={
-            view.provider === "atomicswap" && view.kind === "swap"
-              ? () => setManualImportOpen(true)
-              : undefined
-          }
-        />
-        <HeadlinesCard />
-      </aside>
-
-      {/* CENTER — sand lantern status card */}
-      <div className="order-1 mx-auto w-full max-w-[480px] lg:order-2">
-        <article className="rounded-2xl border border-bg/15 bg-surface p-5 text-bg">
-          <CardHeader
-            phase={view.phase}
-            tone={tone}
-            swapNumber={view.swapNumber}
-            onCopy={handleCopy}
-            copiedKey={copiedKey}
-          />
-
-          <div className="mt-4">
-            <PairSummary
-              fromToken={view.fromToken}
-              toToken={view.toToken}
-              depositAmount={view.depositAmount}
-              expectedOut={
-                view.phase === "refunded" || view.phase === "expired"
-                  ? view.expectedOut
-                  : view.actualOut ?? view.expectedOut
-              }
-              amountInUsd={view.amountInUsd}
-              expectedOutUsd={view.expectedOutUsd}
-              provider={view.provider}
-              muted={view.phase === "refunded" || view.phase === "expired"}
-            />
-          </div>
-
-          {!isTerminal && view.depositAddress && (() => {
-            const showThorchainGate =
-              view.provider === "thorchain" &&
-              view.depositAmount !== null &&
-              view.fromToken !== null;
-            const ackedThorchain =
-              showThorchainGate &&
-              thorchainAck !== null &&
-              thorchainAck.flowId === flowId &&
-              thorchainAck.amount === view.depositAmount;
-            const toggleThorchainAck = (): void => {
-              if (!showThorchainGate || view.depositAmount === null) return;
-              setThorchainAck((prev) =>
-                prev !== null && prev.flowId === flowId && prev.amount === view.depositAmount
-                  ? null
-                  : { flowId, amount: view.depositAmount as string },
-              );
-            };
-
-            const showAtomicGate = view.provider === "atomicswap";
-            // Identifiers under which this swap's ack is/can be persisted.
-            // keystoreId is stable across the URL upgrade; swapNumber is the
-            // canonical id post-upgrade. Either one matching counts as acked.
-            const ackKeys = [view.keystoreId, view.swapNumber];
-            // `atomicBetaAckTick` is read so React re-evaluates `ackedAtomic`
-            // every time the user toggles. Without this, calling
-            // markAtomicBetaAcked wouldn't trigger a re-render.
-            void atomicBetaAckTick;
-            const ackedAtomic = showAtomicGate && isAtomicBetaAcked(ackKeys);
-            const toggleAtomicAck = (): void => {
-              if (!showAtomicGate) return;
-              if (ackedAtomic) {
-                unmarkAtomicBetaAcked(ackKeys);
-              } else {
-                markAtomicBetaAcked(ackKeys);
-              }
-              setAtomicBetaAckTick((t) => t + 1);
-            };
-
-            // Either gate that's active and unacked blurs the deposit. In
-            // practice only one gate fires per swap (provider is either
-            // thorchain or atomicswap, never both), but the OR keeps the
-            // condition extensible if a future provider grows its own gate.
-            const blurDeposit =
-              (showThorchainGate && !ackedThorchain) ||
-              (showAtomicGate && !ackedAtomic);
-
-            return (
-              <>
-                {showThorchainGate && view.depositAmount && view.fromToken && (
-                  <div className="mt-3">
-                    <ThorchainAmountWarning
-                      depositAmount={view.depositAmount}
-                      fromToken={view.fromToken}
-                      acked={ackedThorchain}
-                      onToggleAck={toggleThorchainAck}
-                    />
-                  </div>
-                )}
-                {showAtomicGate && (
-                  <div className="mt-3">
-                    <AtomicBetaWarning
-                      acked={ackedAtomic}
-                      onToggleAck={toggleAtomicAck}
-                    />
-                  </div>
-                )}
-                <div
-                  className={`mt-3 transition-[filter,opacity] duration-200 ${
-                    blurDeposit
-                      ? "pointer-events-none select-none [filter:blur(8px)] opacity-70"
-                      : ""
-                  }`}
-                  aria-hidden={blurDeposit}
+    <div className="flex w-full flex-col gap-3">
+      {/* Limited-view unlock prompt — rendered in its own row above the main
+          grid (center column) so the grid's three columns always top-align
+          with the swap card whether this prompt is shown or hidden. */}
+      {(unlockPrompt.showCard || unlockPrompt.showReopenButton) && (
+        <div className="grid w-full grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,480px)_320px] lg:gap-8">
+          <div className="mx-auto w-full max-w-[480px] lg:col-start-2">
+            {unlockPrompt.showCard && (
+              <UnlockCard
+                onUnlock={handleUnlock}
+                onSkip={handleUnlockSkip}
+                mismatch={unlockAttempted && view.restricted}
+              />
+            )}
+            {unlockPrompt.showReopenButton && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setUnlockSession({ flowId, attempted: false, reopened: true })}
+                  className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink-mid transition-colors hover:text-ink"
                 >
-                  <DepositTwoUp
-                    depositAddress={view.depositAddress as string}
-                    depositAmount={view.depositAmount}
-                    fromToken={view.fromToken}
-                    amountInUsd={view.amountInUsd}
-                    timeLeftMs={timeLeftMs}
-                    onCopy={handleCopy}
-                    copiedKey={copiedKey}
-                  />
-                </div>
-              </>
-            );
-          })()}
+                  Unlock full details
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
-          {isTerminal && (
-            <div className="mt-3">
-              <ReceiptTwoUp
-                tone={tone}
-                phase={view.phase}
-                provider={view.provider}
-                actualOut={
-                  view.phase === "refunded"
-                    ? view.actualOut ?? view.depositAmount
-                    : view.actualOut ?? view.expectedOut
-                }
-                toToken={view.toToken}
+      <div className="grid w-full grid-cols-1 items-start gap-6 lg:grid-cols-[260px_minmax(0,480px)_320px] lg:gap-8">
+        {/* LEFT — backup + brand pillars (continuity with /swap) */}
+        <aside className="order-3 flex flex-col gap-3 lg:order-1">
+          <BackupCard
+            kind={view.kind}
+            provider={view.provider}
+            keystoreId={view.keystoreId}
+            serverSwapId={view.serverSwapId}
+            phase={view.phase}
+            onImportKeystore={
+              view.provider === "atomicswap" && view.kind === "swap"
+                ? () => setManualImportOpen(true)
+                : undefined
+            }
+          />
+          <HeadlinesCard />
+        </aside>
+
+        {/* CENTER — sand lantern status card */}
+        <div className="order-1 mx-auto w-full max-w-[480px] lg:order-2">
+          <article className="rounded-2xl border border-bg/15 bg-surface p-5 text-bg">
+            <CardHeader
+              phase={displayPhase}
+              tone={tone}
+              swapNumber={view.swapNumber}
+              onCopy={handleCopy}
+              copiedKey={copiedKey}
+            />
+
+            <div className="mt-4">
+              <PairSummary
                 fromToken={view.fromToken}
-                outputTxHash={view.outputTxHash}
-                refundTxid={view.refundTxid}
+                toToken={view.toToken}
                 depositAmount={view.depositAmount}
-                durationSec={view.durationSec}
-                destAddress={view.destAddress}
-                refundAddress={view.refundAddress}
-                errorMessage={view.errorMessage}
-                onCopy={handleCopy}
-                copiedKey={copiedKey}
-                keystoreId={view.keystoreId}
-                serverSwapId={view.serverSwapId}
-                swapNumber={view.swapNumber}
+                expectedOut={
+                  view.phase === "refunded" || view.phase === "expired"
+                    ? view.expectedOut
+                    : (view.actualOut ?? view.expectedOut)
+                }
+                amountInUsd={view.amountInUsd}
+                expectedOutUsd={view.expectedOutUsd}
+                provider={view.provider}
+                muted={view.phase === "refunded" || view.phase === "expired"}
               />
             </div>
-          )}
 
-          {!isTerminal && !view.depositAddress && view.phase === "verification-failed" && (
-            <div className="mt-3">
-              <VerificationFailedCard view={view} flowId={flowId} />
+            {!isTerminal &&
+              view.depositAddress &&
+              (() => {
+                const showThorchainGate =
+                  view.provider === "thorchain" &&
+                  view.depositAmount !== null &&
+                  view.fromToken !== null;
+                const ackedThorchain =
+                  showThorchainGate &&
+                  thorchainAck !== null &&
+                  thorchainAck.flowId === flowId &&
+                  thorchainAck.amount === view.depositAmount;
+                const toggleThorchainAck = (): void => {
+                  if (!showThorchainGate || view.depositAmount === null) return;
+                  setThorchainAck((prev) =>
+                    prev !== null && prev.flowId === flowId && prev.amount === view.depositAmount
+                      ? null
+                      : { flowId, amount: view.depositAmount as string },
+                  );
+                };
+
+                const showAtomicGate = view.provider === "atomicswap";
+                // Identifiers under which this swap's ack is/can be persisted.
+                // keystoreId is stable across the URL upgrade; swapNumber is the
+                // canonical id post-upgrade. Either one matching counts as acked.
+                const ackKeys = [view.keystoreId, view.swapNumber];
+                // `atomicBetaAckTick` is read so React re-evaluates `ackedAtomic`
+                // every time the user toggles. Without this, calling
+                // markAtomicBetaAcked wouldn't trigger a re-render.
+                void atomicBetaAckTick;
+                const ackedAtomic = showAtomicGate && isAtomicBetaAcked(ackKeys);
+                const toggleAtomicAck = (): void => {
+                  if (!showAtomicGate) return;
+                  if (ackedAtomic) {
+                    unmarkAtomicBetaAcked(ackKeys);
+                  } else {
+                    markAtomicBetaAcked(ackKeys);
+                  }
+                  setAtomicBetaAckTick((t) => t + 1);
+                };
+
+                // Either gate that's active and unacked blurs the deposit. In
+                // practice only one gate fires per swap (provider is either
+                // thorchain or atomicswap, never both), but the OR keeps the
+                // condition extensible if a future provider grows its own gate.
+                const blurDeposit =
+                  (showThorchainGate && !ackedThorchain) || (showAtomicGate && !ackedAtomic);
+
+                return (
+                  <>
+                    {showThorchainGate && view.depositAmount && view.fromToken && (
+                      <div className="mt-3">
+                        <ThorchainAmountWarning
+                          depositAmount={view.depositAmount}
+                          fromToken={view.fromToken}
+                          acked={ackedThorchain}
+                          onToggleAck={toggleThorchainAck}
+                        />
+                      </div>
+                    )}
+                    {showAtomicGate && (
+                      <div className="mt-3">
+                        <AtomicBetaWarning acked={ackedAtomic} onToggleAck={toggleAtomicAck} />
+                      </div>
+                    )}
+                    <div
+                      className={`mt-3 transition-[filter,opacity] duration-200 ${
+                        blurDeposit
+                          ? "pointer-events-none select-none [filter:blur(8px)] opacity-70"
+                          : ""
+                      }`}
+                      aria-hidden={blurDeposit}
+                    >
+                      <DepositTwoUp
+                        depositAddress={view.depositAddress as string}
+                        depositAmount={view.depositAmount}
+                        fromToken={view.fromToken}
+                        amountInUsd={view.amountInUsd}
+                        timeLeftMs={timeLeftMs}
+                        onCopy={handleCopy}
+                        copiedKey={copiedKey}
+                      />
+                    </div>
+                  </>
+                );
+              })()}
+
+            {isTerminal && (
+              <div className="mt-3">
+                <ReceiptTwoUp
+                  tone={tone}
+                  phase={view.phase}
+                  provider={view.provider}
+                  actualOut={
+                    view.phase === "refunded"
+                      ? (view.actualOut ?? view.depositAmount)
+                      : (view.actualOut ?? view.expectedOut)
+                  }
+                  toToken={view.toToken}
+                  fromToken={view.fromToken}
+                  outputTxHash={view.outputTxHash}
+                  refundTxid={view.refundTxid}
+                  depositAmount={view.depositAmount}
+                  durationSec={view.durationSec}
+                  destAddress={view.destAddress}
+                  refundAddress={view.refundAddress}
+                  errorMessage={view.errorMessage}
+                  onCopy={handleCopy}
+                  copiedKey={copiedKey}
+                  keystoreId={view.keystoreId}
+                  serverSwapId={view.serverSwapId}
+                  swapNumber={view.swapNumber}
+                />
+              </div>
+            )}
+
+            {!isTerminal && !view.depositAddress && view.phase === "verification-failed" && (
+              <div className="mt-3">
+                <VerificationFailedCard view={view} flowId={flowId} />
+              </div>
+            )}
+
+            {!isTerminal && !view.depositAddress && view.phase !== "verification-failed" && (
+              <div className="mt-3">
+                <PendingPanel message={view.statusMessage} phase={displayPhase} />
+              </div>
+            )}
+
+            <div className="mt-4">
+              <Pipeline stage={stage} isCancelFlow={isCancelFlow} tone={tone} />
             </div>
-          )}
 
-          {!isTerminal && !view.depositAddress && view.phase !== "verification-failed" && (
-            <div className="mt-3">
-              <PendingPanel message={view.statusMessage} phase={view.phase} />
-            </div>
-          )}
-
-          <div className="mt-4">
-            <Pipeline stage={stage} isCancelFlow={isCancelFlow} tone={tone} />
-          </div>
-
-          {/* The verification-failed card already renders its own message
+            {/* The verification-failed card already renders its own message
               + actions; suppress the generic status banner there to avoid
               duplicate copy. */}
-          {!isTerminal && view.statusMessage && view.phase !== "verification-failed" && (
-            <div className="mt-4 rounded-[10px] border border-bg/15 bg-bg/[0.04] px-3 py-2.5">
-              <p className="font-mono text-[10.5px] leading-[1.55] text-bg/70">
-                {view.statusMessage}
-              </p>
-            </div>
-          )}
-        </article>
+            {!isTerminal && view.statusMessage && view.phase !== "verification-failed" && (
+              <div className="mt-4 rounded-[10px] border border-bg/15 bg-bg/[0.04] px-3 py-2.5">
+                <p className="font-mono text-[10.5px] leading-[1.55] text-bg/70">
+                  {view.statusMessage}
+                </p>
+              </div>
+            )}
+          </article>
 
-        <div className="mt-3 flex items-center justify-center">
-          <Link
-            href="/"
-            className="group inline-flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink-mid transition-colors hover:text-ink"
-          >
-            <ArrowLeft className="h-3 w-3 transition-transform duration-150 group-hover:-translate-x-0.5" />
-            Back to swap
-          </Link>
+          <div className="mt-3 flex items-center justify-center">
+            <Link
+              href="/"
+              className="group inline-flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink-mid transition-colors hover:text-ink"
+            >
+              <ArrowLeft className="h-3 w-3 transition-transform duration-150 group-hover:-translate-x-0.5" />
+              Back to swap
+            </Link>
+          </div>
         </div>
+
+        {/* RIGHT — verification */}
+        <aside className="order-2 flex flex-col gap-3 lg:order-3">
+          <VerificationCard
+            verification={view.verification}
+            provider={view.provider}
+            sourceUrl={view.verificationSourceUrl}
+            isActive={!isTerminal}
+          />
+          {shouldShowReviewLinks(view.phase) && <ReviewLinksCard />}
+        </aside>
+
+        {((showImportPrompt && importPromptOpen) || manualImportOpen) && view.swapNumber && (
+          <KeystoreImportModal
+            swapNumber={view.swapNumber}
+            onClose={() => {
+              setImportPromptOpen(false);
+              setManualImportOpen(false);
+            }}
+            onImported={() => {
+              // After import, the engine's existing SwapFlow path is bound;
+              // the simplest reliable way to pick up the new keystore and
+              // switch to AtomicFlow is a full reload — engine.resume re-runs
+              // listKeystores, finds the import, and dispatches AtomicFlow.
+              window.location.reload();
+            }}
+          />
+        )}
       </div>
-
-      {/* RIGHT — verification */}
-      <aside className="order-2 flex flex-col gap-3 lg:order-3">
-        <VerificationCard
-          verification={view.verification}
-          provider={view.provider}
-          sourceUrl={view.verificationSourceUrl}
-          isActive={!isTerminal}
-        />
-        {shouldShowReviewLinks(view.phase) && <ReviewLinksCard />}
-      </aside>
-
-      {((showImportPrompt && importPromptOpen) || manualImportOpen) && view.swapNumber && (
-        <KeystoreImportModal
-          swapNumber={view.swapNumber}
-          onClose={() => {
-            setImportPromptOpen(false);
-            setManualImportOpen(false);
-          }}
-          onImported={() => {
-            // After import, the engine's existing SwapFlow path is bound;
-            // the simplest reliable way to pick up the new keystore and
-            // switch to AtomicFlow is a full reload — engine.resume re-runs
-            // listKeystores, finds the import, and dispatches AtomicFlow.
-            window.location.reload();
-          }}
-        />
-      )}
     </div>
   );
 }

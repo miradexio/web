@@ -118,6 +118,7 @@ function mergeState(base: EngineState, patch: Partial<EngineState>): EngineState
  */
 export function makeSnapshot(over: Partial<FlowContext> = {}): FlowContext {
   return {
+    restricted: false,
     depositAddr: null,
     destAddress: null,
     refundAddress: null,

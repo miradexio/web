@@ -18,6 +18,8 @@ export interface EngineActions {
   // `keystoreId` — the registry resolves through its index maps. The
   // parameter name stays `idOrFlowId` to make the polymorphism explicit.
   readonly resume: (idOrFlowId: string) => Promise<void>;
+  /** Manual proof entry: rebuilds the engine with the destAddress bound. */
+  readonly unlock: (idOrFlowId: string, destAddress: string) => Promise<void>;
   readonly cancel: (idOrFlowId: string) => void;
   readonly destroy: (idOrFlowId: string) => void;
   readonly executeAction: (
@@ -36,6 +38,7 @@ export function useEngineActions(): EngineActions {
       startSwap: (params) => registry.startSwap(params),
       startAtomicSwap: (params) => registry.startAtomicSwap(params),
       resume: (id) => registry.resume(id),
+      unlock: (id, destAddress) => registry.unlock(id, destAddress),
       cancel: (id) => registry.cancel(id),
       destroy: (id) => registry.destroy(id),
       executeAction: (id, action) => registry.executeAction(id, action),

@@ -7,6 +7,8 @@ export type FlowKind = "swap" | "atomic";
 export interface FlowView {
   readonly kind: FlowKind;
   readonly phase: string;
+  /** True when the server withheld sensitive fields (no ownership proof). */
+  readonly restricted: boolean;
   readonly fromToken: string | null;
   readonly toToken: string | null;
   readonly depositAddress: string | null;

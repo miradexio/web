@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import type { SwapFee, SwapProvider, SwapQuote } from "@miradexio/client";
 import { useEngineActions } from "@/hooks/use-engine-actions";
 import { SWAP_HISTORY_QUERY_KEY } from "@/hooks/use-swap-history";
-import { saveSwapHistory } from "@/lib/storage/swap-history";
+import { buildCreatedSwapHistoryRow, saveSwapHistory } from "@/lib/storage/swap-history";
 import type { Quote, QuoteFee, SwapRequest } from "../components/web-components/types";
 
 interface SwapMutationInput extends SwapRequest {
@@ -29,7 +29,6 @@ const KNOWN_PROVIDERS: ReadonlySet<string> = new Set([
   "atomicswap",
 ]);
 
-const INITIAL_STATUS = "creating";
 
 function isAtomicPair(fromCoin: string, toCoin: string): boolean {
   return fromCoin.toUpperCase() === "BTC" && toCoin.toUpperCase() === "XMR";
@@ -40,7 +39,7 @@ function toSwapProvider(name: string): SwapProvider {
 }
 
 function uiFeeToSwapFee(f: QuoteFee): SwapFee {
-  return { type: f.type, amount: f.amount, token: f.token };
+  return { type: f.type, amount: f.amount, token: f.token, amountUsd: f.amountUsd ?? null };
 }
 
 function uiQuoteToSwapQuote(q: Quote): SwapQuote {
@@ -104,24 +103,21 @@ export function useSwap() {
       // created by useHistorySync at that point. Until then the swap lives
       // in the keystores store / sheet, not /history.
       if (!isAtomic) {
-        await saveSwapHistory({
-          flowId,
-          serverSwapId: flowId,
-          createdAt: new Date().toISOString(),
-          fromCoin: request.fromCoin,
-          fromNetwork: request.fromNetwork,
-          fromAmount: String(request.amount),
-          fromAmountUsd: quote.fromAmountUsd ?? null,
-          toCoin: request.toCoin,
-          toNetwork: request.toNetwork,
-          toAmount: quote.toAmount,
-          toAmountUsd: quote.toAmountUsd ?? null,
-          provider: quote.provider,
-          status: INITIAL_STATUS,
-          expiresAt: null,
-          depositAddress: null,
-          outputTxHash: null,
-        });
+        await saveSwapHistory(
+          buildCreatedSwapHistoryRow({
+            flowId,
+            fromCoin: request.fromCoin,
+            fromNetwork: request.fromNetwork,
+            fromAmount: String(request.amount),
+            fromAmountUsd: quote.fromAmountUsd ?? null,
+            toCoin: request.toCoin,
+            toNetwork: request.toNetwork,
+            toAmount: quote.toAmount,
+            toAmountUsd: quote.toAmountUsd ?? null,
+            provider: quote.provider,
+            destAddress: request.toAddress,
+          }),
+        );
         await queryClient.invalidateQueries({ queryKey: SWAP_HISTORY_QUERY_KEY });
       }
       // ?keystore=<UUID> until the server issues a swap number; SwapClient

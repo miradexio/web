@@ -10,7 +10,8 @@ import type {
 } from "@miradexio/client";
 import { BrowserAdapter } from "./browser-adapter";
 import { resolveWebConfig } from "./config";
-import { listKeystoreMetadata } from "./idb";
+import { listKeystoreMetadata, listSwapHistory, type SwapHistoryRow } from "./idb";
+import { cacheProof, readCachedProof } from "./swap-proof";
 
 const SWAP_ID_TIMEOUT_MS = 30_000;
 // Keygen (WASM) -> verifyKeys (server round-trip) -> saveKeystore (IDB).
@@ -296,6 +297,31 @@ export class EngineRegistry {
     return null;
   }
 
+  // Manual proof entry from the unlock card. The registry's resume()
+  // early-returns for live engines, so unlocking rebuilds the engine from
+  // scratch with the proof bound. The proof is cached so the next reload
+  // auto-unlocks even without a history row.
+  async unlock(idOrFlowId: string, destAddress: string): Promise<void> {
+    const existingFlowId = this.resolveFlowId(idOrFlowId);
+    if (existingFlowId !== null) {
+      this.destroy(existingFlowId);
+    }
+    cacheProof(idOrFlowId, destAddress);
+    const engine = this.createEngine();
+    this.engines.set(idOrFlowId, engine);
+    this.bySwapId.set(idOrFlowId, idOrFlowId);
+    this.bindStateIndex(engine, idOrFlowId);
+    this.notify();
+    await engine.resume(idOrFlowId, { destAddress });
+  }
+
+  private async lookUpProof(swapId: string): Promise<string | undefined> {
+    const rows = await listSwapHistory().catch(() => [] as readonly SwapHistoryRow[]);
+    const row = rows.find((r) => r.serverSwapId === swapId || r.flowId === swapId);
+    if (row?.destAddress && row.destAddress.length > 0) return row.destAddress;
+    return readCachedProof(swapId) ?? undefined;
+  }
+
   private async resumeFresh(idOrFlowId: string): Promise<void> {
     const engine = this.createEngine();
     if (isUuidShape(idOrFlowId)) {
@@ -323,7 +349,10 @@ export class EngineRegistry {
     this.bySwapId.set(idOrFlowId, idOrFlowId);
     this.bindStateIndex(engine, idOrFlowId);
     this.notify();
-    await engine.resume(idOrFlowId);
+    // destAddress ownership proof from the history row (stored at creation)
+    // or the manual-unlock cache; without one the swap resumes restricted.
+    const destAddress = await this.lookUpProof(idOrFlowId);
+    await engine.resume(idOrFlowId, destAddress !== undefined ? { destAddress } : undefined);
   }
 
   private notify(): void {

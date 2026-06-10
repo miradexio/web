@@ -33,6 +33,9 @@ export interface SwapHistoryRow {
   readonly status: string;
   readonly expiresAt: string | null;
   readonly depositAddress: string | null;
+  /** Destination (receive) address — the swap's ownership proof. Stored at
+   *  creation time so reloads can fetch full detail from the server. */
+  readonly destAddress: string | null;
   readonly outputTxHash: string | null;
 }
 
@@ -48,7 +51,8 @@ const DB_NAME = "miradex-web";
 // `upgrade` callback below is additive — it creates missing stores
 // unconditionally and runs version-gated row rewrites guarded by `oldVersion`.
 // v4: rename `swapId` → `flowId` on swap_history rows and seed `serverSwapId`.
-const DB_VERSION = 4;
+// v5: add `destAddress` (ownership proof) to swap_history rows, null for old rows.
+const DB_VERSION = 5;
 const STORE_KEYSTORES = "keystores";
 const STORE_SWAP_PROTOCOLS = "swap_protocols";
 const STORE_PROTOCOL_SNAPSHOTS = "protocol_snapshots";
@@ -82,6 +86,18 @@ export function isLegacySwapHistoryRow(
   return typeof v.swapId === "string" && typeof v.flowId !== "string";
 }
 
+type PreV5SwapHistoryRow = Omit<SwapHistoryRow, "destAddress">;
+
+export function isPreV5SwapHistoryRow(value: unknown): value is PreV5SwapHistoryRow {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return typeof v.flowId === "string" && !("destAddress" in v);
+}
+
+export function preV5RowToV5Row(value: PreV5SwapHistoryRow): SwapHistoryRow {
+  return { ...value, destAddress: null };
+}
+
 export function legacyRowToFlowRow(value: LegacySwapHistoryRow): SwapHistoryRow {
   return {
     flowId: value.swapId,
@@ -99,6 +115,7 @@ export function legacyRowToFlowRow(value: LegacySwapHistoryRow): SwapHistoryRow 
     status: value.status,
     expiresAt: value.expiresAt,
     depositAddress: value.depositAddress,
+    destAddress: null,
     outputTxHash: value.outputTxHash,
   };
 }
@@ -129,18 +146,26 @@ function openMiradexDb(): Promise<IDBPDatabase<MiradexSchema>> {
         database.createObjectStore(STORE_SWAP_HISTORY);
       }
 
-      if (oldVersion < 4) {
+      if (oldVersion < 5) {
+        // Row rewrites run sequentially in ONE cursor pass — two concurrent
+        // fire-and-forget cursors on the same upgrade tx race each other.
         // v4: rename swapId → flowId on swap_history rows and seed
         // serverSwapId. Pre-v4 rows are all non-atomic (atomic flows
         // couldn't be created before the flowId refactor due to the
         // startup deadlock), so serverSwapId === flowId for legacy rows.
+        // v5: seed destAddress (ownership proof) as null on pre-existing
+        // rows. Owners of old swaps unlock via the manual prompt once;
+        // useHistorySync backfills live flows from engine snapshots.
         const store = tx.objectStore(STORE_SWAP_HISTORY);
         void (async (): Promise<void> => {
           let cursor = await store.openCursor();
           while (cursor !== null) {
             const value: unknown = cursor.value;
-            if (isLegacySwapHistoryRow(value)) {
+            if (oldVersion < 4 && isLegacySwapHistoryRow(value)) {
+              // legacyRowToFlowRow already emits the v5 shape (destAddress: null).
               await cursor.update(legacyRowToFlowRow(value));
+            } else if (isPreV5SwapHistoryRow(value)) {
+              await cursor.update(preV5RowToV5Row(value));
             }
             cursor = await cursor.continue();
           }

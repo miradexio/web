@@ -1,7 +1,22 @@
 import { describe, expect, it, beforeEach, vi } from "vitest";
 import type { MiradexEngine } from "@miradexio/client";
 import { EngineRegistry, getRegistry, resetRegistryForTests } from "@/lib/miradex-web/registry";
+import { persistSwapHistory, removeSwapHistory } from "@/lib/miradex-web/idb";
+import { cacheProof, readCachedProof } from "@/lib/miradex-web/swap-proof";
 import { createFakeEngine, makeSnapshot } from "./_helpers/fake-engine";
+
+beforeEach(() => {
+  const store = new Map<string, string>();
+  vi.stubGlobal("localStorage", {
+    getItem: (key: string): string | null => store.get(key) ?? null,
+    setItem: (key: string, value: string): void => {
+      store.set(key, value);
+    },
+    removeItem: (key: string): void => {
+      store.delete(key);
+    },
+  });
+});
 
 type FakeHandle = ReturnType<typeof createFakeEngine>;
 
@@ -110,6 +125,59 @@ describe("EngineRegistry: resume id-shape routing", () => {
     expect(methods).not.toContain("resumeAtomicSwap");
   });
 
+  it("passes the stored destAddress proof from swap history to engine.resume", async () => {
+    await persistSwapHistory({
+      flowId: "MIRA-PROOF01",
+      serverSwapId: "MIRA-PROOF01",
+      createdAt: "2026-06-09T10:00:00.000Z",
+      fromCoin: "BTC",
+      fromNetwork: "BTC",
+      fromAmount: "0.01",
+      fromAmountUsd: null,
+      toCoin: "ETH",
+      toNetwork: "ETH",
+      toAmount: "0.1",
+      toAmountUsd: null,
+      provider: "thorchain",
+      status: "swapping",
+      expiresAt: null,
+      depositAddress: null,
+      destAddress: "0xstoredproof",
+      outputTxHash: null,
+    });
+
+    const fakes = captureFake();
+    const registry = new EngineRegistry({ engineFactory: fakes.factory });
+    await registry.resume("MIRA-PROOF01");
+
+    const resumeCall = fakes.get().calls.find((c) => c.method === "resume");
+    expect(resumeCall).toBeDefined();
+    expect(resumeCall?.args[0]).toBe("MIRA-PROOF01");
+    expect(resumeCall?.args[1]).toEqual({ destAddress: "0xstoredproof" });
+
+    await removeSwapHistory("MIRA-PROOF01");
+  });
+
+  it("falls back to the cached manual proof when no history row exists", async () => {
+    cacheProof("MIRA-PROOF02", "0xcachedproof");
+
+    const fakes = captureFake();
+    const registry = new EngineRegistry({ engineFactory: fakes.factory });
+    await registry.resume("MIRA-PROOF02");
+
+    const resumeCall = fakes.get().calls.find((c) => c.method === "resume");
+    expect(resumeCall?.args[1]).toEqual({ destAddress: "0xcachedproof" });
+  });
+
+  it("resumes without a proof when neither a row nor a cache entry exists", async () => {
+    const fakes = captureFake();
+    const registry = new EngineRegistry({ engineFactory: fakes.factory });
+    await registry.resume("MIRA-NOPROOF1");
+
+    const resumeCall = fakes.get().calls.find((c) => c.method === "resume");
+    expect(resumeCall?.args[1]).toBeUndefined();
+  });
+
   it("is idempotent — second resume call with same id reuses the engine", async () => {
     let count = 0;
     const factory = (): MiradexEngine => {
@@ -120,6 +188,40 @@ describe("EngineRegistry: resume id-shape routing", () => {
     await registry.resume("MIRA-ABC123");
     await registry.resume("MIRA-ABC123");
     expect(count).toBe(1);
+  });
+});
+
+describe("EngineRegistry: unlock", () => {
+  it("destroys the live engine and resumes fresh with the manual proof", async () => {
+    const built: FakeHandle[] = [];
+    const factory = (): MiradexEngine => {
+      const handle = createFakeEngine();
+      built.push(handle);
+      return handle.engine;
+    };
+    const registry = new EngineRegistry({ engineFactory: factory });
+
+    await registry.resume("MIRA-LOCKED01");
+    expect(built).toHaveLength(1);
+
+    await registry.unlock("MIRA-LOCKED01", "0xmanualproof");
+
+    expect(built).toHaveLength(2);
+    const first = built[0];
+    const second = built[1];
+    expect(first?.calls.map((c) => c.method)).toContain("destroy");
+    const resumeCall = second?.calls.find((c) => c.method === "resume");
+    expect(resumeCall?.args[0]).toBe("MIRA-LOCKED01");
+    expect(resumeCall?.args[1]).toEqual({ destAddress: "0xmanualproof" });
+  });
+
+  it("caches the manual proof for the next reload", async () => {
+    const fakes = captureFake();
+    const registry = new EngineRegistry({ engineFactory: fakes.factory });
+
+    await registry.unlock("MIRA-LOCKED02", "0xmanualproof");
+
+    expect(readCachedProof("MIRA-LOCKED02")).toBe("0xmanualproof");
   });
 });
 

@@ -30,6 +30,7 @@ export function viewFromState(state: EngineState | null): FlowView | null {
   return {
     kind,
     phase: flow.phase,
+    restricted: snapshot?.restricted ?? false,
     fromToken: snapshot?.fromToken ?? null,
     toToken: snapshot?.toToken ?? null,
     depositAddress: snapshot?.depositAddr ?? null,
@@ -55,6 +56,14 @@ export function viewFromState(state: EngineState | null): FlowView | null {
     serverSwapId:
       state.atomic.snapshot?.swapId ?? state.swap.snapshot?.swapId ?? null,
   };
+}
+
+// Restricted pre-deposit swaps park on the SDK's `creating-swap` phase (the
+// only pre-deposit phase whose snapshot allows a null deposit address), but
+// the swap is actually live and awaiting funds — present it truthfully.
+export function presentedPhase(view: FlowView): string {
+  if (view.restricted && view.phase === "creating-swap") return "awaiting-deposit";
+  return view.phase;
 }
 
 export function pipelineStageOf(view: FlowView): PipelineStage | null {
