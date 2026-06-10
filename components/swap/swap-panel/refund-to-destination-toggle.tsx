@@ -21,9 +21,6 @@ export function RefundToDestinationToggle({
         <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-bg">
           Refund to destination address
         </span>
-        {/* <span className="font-mono text-[10.5px] leading-relaxed text-bg/60">
-          If the swap fails, your {coin} is returned to your destination address.
-        </span> */}
       </span>
     </label>
   );

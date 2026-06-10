@@ -39,12 +39,12 @@ function StarIcon({ className }: { readonly className?: string }): React.JSX.Ele
 
 function StarTile({ fillPercent }: StarTileProps): React.JSX.Element {
   return (
-    <span className="relative flex h-[18px] w-[18px] items-center justify-center overflow-hidden rounded-[2px] bg-ink/18">
+    <span className="relative flex h-[18px] w-[18px] items-center justify-center overflow-hidden rounded-[2px] bg-surface-soft">
       <span
         className="absolute inset-y-0 left-0"
         style={{ width: `${fillPercent}%`, backgroundColor: TRUSTPILOT_GREEN }}
       />
-      <StarIcon className="relative z-10 text-white" />
+      <StarIcon className={fillPercent > 0 ? "relative z-10 text-white" : "relative z-10 text-ink/35"} />
     </span>
   );
 }

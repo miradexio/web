@@ -23,6 +23,19 @@ const CATEGORIES: readonly CategoryItem[] = [
   { id: "recents", icon: Clock, label: "Recents" },
 ];
 
+const CHAIN_DISPLAY_NAMES: Readonly<Record<string, string>> = {
+  bsc: "BSC",
+  bitcoincash: "Bitcoin Cash",
+  xrp: "XRP",
+  ton: "TON",
+};
+
+function chainDisplayName(chain: string): string {
+  const mapped = CHAIN_DISPLAY_NAMES[chain.toLowerCase()];
+  if (mapped) return mapped;
+  return chain.charAt(0).toUpperCase() + chain.slice(1);
+}
+
 export function Sidebar({
   category,
   selectedChain,
@@ -68,12 +81,12 @@ export function Sidebar({
                 onClick={() => onSelectChain(chain)}
                 className={
                   isActive
-                    ? "flex shrink-0 items-center gap-2 rounded-lg bg-bg-2 px-3 py-2 text-[13px] font-medium text-ink capitalize md:w-full md:gap-3"
-                    : "flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium capitalize text-ink-mid transition-colors hover:bg-bg-2/50 hover:text-ink md:w-full md:gap-3"
+                    ? "flex shrink-0 items-center gap-2 rounded-lg bg-bg-2 px-3 py-2 text-[13px] font-medium text-ink md:w-full md:gap-3"
+                    : "flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium text-ink-mid transition-colors hover:bg-bg-2/50 hover:text-ink md:w-full md:gap-3"
                 }
               >
                 <ChainIcon chain={chain} size={20} />
-                <span className="whitespace-nowrap">{chain}</span>
+                <span className="whitespace-nowrap">{chainDisplayName(chain)}</span>
               </button>
             );
           })}

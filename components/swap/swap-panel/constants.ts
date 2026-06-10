@@ -28,7 +28,7 @@ export const PROTOCOL_OPTIONS: readonly ProtocolOption[] = [
 export const HEADLINES: readonly Headline[] = [
   { label: "Decentralized", dot: "bg-accent" },
   { label: "Non custodial", dot: "bg-green" },
-  { label: "Best rates", dot: "bg-[#7BB6F2]" },
+  { label: "CEX-like rates", dot: "bg-[#7BB6F2]" },
   { label: "No wallet connect", dot: "bg-[#E8C25A]" },
 ];
 

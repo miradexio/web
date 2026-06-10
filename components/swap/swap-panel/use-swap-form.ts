@@ -13,7 +13,7 @@ import { validateAddress } from "./helpers";
 import { resolveRefundPolicy, type RefundPolicy } from "./refund-policy";
 import type { ProtocolFilter, ProviderGroup, RouteTag, SortMode } from "./types";
 
-const DEFAULT_AMOUNT = "0.1";
+const DEFAULT_AMOUNT = "0.005";
 
 export type PickerTarget = "from" | "to" | null;
 

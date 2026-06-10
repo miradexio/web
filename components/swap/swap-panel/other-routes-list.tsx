@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ChevIcon } from "../../web-components/icons";
 import { formatNumber, formatUsd } from "../../web-components/swap-shared";
-import { getProviderDisplay } from "./helpers";
+import { getProviderDisplay, humanizeEta } from "./helpers";
 import { ProviderIcon } from "./provider-icon";
 import type { ProviderGroup } from "./types";
 
@@ -40,7 +40,7 @@ export function OtherRoutesList({ providers, toCoin, onSelect }: OtherRoutesList
                   <div>
                     <div className="text-[13px] font-semibold text-ink">{display.label}</div>
                     <div className="mt-0.5 font-mono text-[10px] text-ink-mid">
-                      {p.best.estimatedTime}
+                      {humanizeEta(p.best)}
                     </div>
                   </div>
                 </div>

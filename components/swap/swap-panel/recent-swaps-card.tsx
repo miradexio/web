@@ -9,7 +9,7 @@ import { useTokens } from "@/hooks/use-tokens";
 import type { RecentSwap, Token } from "../../web-components/types";
 import { ProviderIcon } from "./provider-icon";
 
-const MAX_VISIBLE_RECENTS = 20;
+const MAX_VISIBLE_RECENTS = 8;
 const COMPACT_AMOUNT_THRESHOLD = 1_000_000;
 const WHOLE_NUMBER_THRESHOLD = 10_000;
 const SIGNIFICANT_DIGITS = 4;

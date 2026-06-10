@@ -1,5 +1,5 @@
 import { formatNumber, formatUsd } from "../../web-components/swap-shared";
-import { getProviderDisplay } from "./helpers";
+import { getProviderDisplay, humanizeEta } from "./helpers";
 import type { Quote } from "../../web-components/types";
 
 type SwapModeComparisonProps = {
@@ -126,7 +126,7 @@ export function SwapModeComparison({
                       {formatUsd(v.toAmountUsd)}
                     </span>
                   )}
-                  <span className="font-mono text-[10px] text-ink-mid">{v.estimatedTime}</span>
+                  <span className="font-mono text-[10px] text-ink-mid">{humanizeEta(v)}</span>
                   {deltaText && (
                     <span className="font-mono text-[9px] text-ink-dim">{deltaText}</span>
                   )}
@@ -166,7 +166,7 @@ export function SwapModeComparison({
                 <div className="font-mono text-[10px] text-ink-mid">{formatUsd(v.toAmountUsd)}</div>
               )}
               <div className="flex items-baseline justify-between gap-1.5">
-                <span className="font-mono text-[10px] text-ink-mid">{v.estimatedTime}</span>
+                <span className="font-mono text-[10px] text-ink-mid">{humanizeEta(v)}</span>
                 {deltaText && (
                   <span className="font-mono text-[9px] text-ink-dim">{deltaText}</span>
                 )}

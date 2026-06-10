@@ -41,7 +41,7 @@ export function RoutesHeader({
   }, [lastUpdated]);
 
   return (
-    <div className="relative flex items-center justify-between px-1">
+    <div className="relative flex items-center justify-between rounded-xl border border-line-2 bg-bg/40 px-3 py-2 backdrop-blur-md">
       <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-ink">
         Routes
       </span>

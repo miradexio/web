@@ -1,7 +1,7 @@
 import { formatNumber, formatUsd } from "../../web-components/swap-shared";
 import { Chip } from "./chip";
 import { TAG_PRIORITY } from "./constants";
-import { getProviderDisplay } from "./helpers";
+import { getProviderDisplay, humanizeEta } from "./helpers";
 import { ProviderIcon } from "./provider-icon";
 import { TagBadge } from "./tag-badge";
 import type { RouteTag } from "./types";
@@ -12,6 +12,15 @@ type SelectedRouteCardProps = {
   readonly toCoin: string;
   readonly tags: ReadonlySet<RouteTag>;
 };
+
+const ETA_TITLE = "Estimated end to end — most of it is the source chain's own confirmation time";
+const IMPACT_TITLE = "Quoted output vs the current market rate, all fees included";
+
+function impactVariant(impactAbs: number): "neutral" | "warn" | "impact" {
+  if (impactAbs < 1) return "neutral";
+  if (impactAbs < 3) return "warn";
+  return "impact";
+}
 
 export function SelectedRouteCard({ quote, toCoin, tags }: SelectedRouteCardProps) {
   const display = getProviderDisplay(quote.provider);
@@ -33,7 +42,9 @@ export function SelectedRouteCard({ quote, toCoin, tags }: SelectedRouteCardProp
           <ProviderIcon provider={quote.provider} size={32} />
           <div>
             <div className="text-[15px] font-semibold text-ink">{display.label}</div>
-            <div className="mt-0.5 font-mono text-[10px] text-ink-mid">{quote.estimatedTime}</div>
+            <div className="mt-0.5 font-mono text-[10px] text-ink-mid" title={ETA_TITLE}>
+              {humanizeEta(quote)}
+            </div>
           </div>
         </div>
         {variantTag && (
@@ -55,11 +66,13 @@ export function SelectedRouteCard({ quote, toCoin, tags }: SelectedRouteCardProp
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-line pt-3">
-        <Chip variant="time">{quote.estimatedTime}</Chip>
+        <Chip variant="time" title={ETA_TITLE}>
+          {humanizeEta(quote)}
+        </Chip>
         {impact !== null && !Number.isNaN(impact) && (
-          <Chip variant="impact">
+          <Chip variant={impactVariant(Math.abs(impact))} title={IMPACT_TITLE}>
             {impact > 0 ? "+" : ""}
-            {impact.toFixed(2)}%
+            {impact.toFixed(2)}% vs market
           </Chip>
         )}
       </div>

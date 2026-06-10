@@ -98,7 +98,7 @@ export function SwapPanel() {
             <div className="mt-3 flex flex-col gap-2">
               <AddressInput
                 label="Destination"
-                placeholder={`Where to send your  ${form.to?.coin ?? ""}`}
+                placeholder={`Where to send your ${form.to?.coin ?? ""}`}
                 value={form.destAddr}
                 onChange={form.setDestAddr}
                 error={form.destError}
@@ -130,6 +130,10 @@ export function SwapPanel() {
             >
               {form.isSubmitting ? "Starting swap…" : "Swap"}
             </button>
+
+            <p className="mt-2 text-center font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-bg/55">
+              Free · no signup · no wallet connect
+            </p>
 
             {form.isSubmitting && (
               <div className="mt-2.5 flex items-center gap-2 rounded-[10px] border border-bg/15 bg-bg/[0.06] px-3 py-2">
