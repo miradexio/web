@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
   transpilePackages: ["@miradexio/client"],
   images: {
     unoptimized: true,
+    // Static image imports normally route through Next's sharp-backed image
+    // loader. sharp ships native binaries requiring x86-64-v2 (and wasm SIMD
+    // as fallback), which some deploy hosts lack — so imported images are
+    // emitted as plain hashed assets via the webpack rule below instead.
+    disableStaticImages: true,
     remotePatterns: [
       {
         protocol: "https",
@@ -161,6 +166,17 @@ const nextConfig: NextConfig = {
     config.resolve.extensionAlias = {
       '.js': ['.js', '.ts', '.tsx'],
     };
+    // Companion to images.disableStaticImages: imported images become plain
+    // hashed assets. publicPath is set explicitly so server and client
+    // compilations agree on the URL under the /swap basePath.
+    config.module.rules.push({
+      test: /\.(jpe?g|png|gif|webp|avif)$/i,
+      type: 'asset/resource',
+      generator: {
+        filename: 'static/media/[name].[hash:8][ext]',
+        publicPath: '/swap/_next/',
+      },
+    });
     // Enable WebAssembly
     config.experiments = {
       ...config.experiments,

@@ -39,7 +39,7 @@ export function NightScene({
       aria-hidden="true"
     >
       <img
-        src={nightScene.src}
+        src={nightScene}
         alt=""
         draggable={false}
         className="absolute inset-0 h-full w-full object-cover"
