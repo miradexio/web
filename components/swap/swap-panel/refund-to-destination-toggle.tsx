@@ -1,12 +1,12 @@
 type RefundToDestinationToggleProps = {
   readonly checked: boolean;
-  readonly coin: string;
+  readonly address: string;
   readonly onChange: (checked: boolean) => void;
 };
 
 export function RefundToDestinationToggle({
   checked,
-  coin,
+  address,
   onChange,
 }: RefundToDestinationToggleProps) {
   return (
@@ -17,10 +17,15 @@ export function RefundToDestinationToggle({
         onChange={(e) => onChange(e.target.checked)}
         className="mt-[1px] h-3.5 w-3.5 shrink-0 cursor-pointer accent-bg"
       />
-      <span className="flex flex-col gap-1">
+      <span className="flex min-w-0 flex-col gap-1">
         <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-bg">
-          Refund to destination address
+          Refund to your EVM address
         </span>
+        {checked && (
+          <span className="break-all font-mono text-[10.5px] font-medium text-bg/65">
+            {address}
+          </span>
+        )}
       </span>
     </label>
   );

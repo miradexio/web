@@ -10,12 +10,15 @@ import { findToken } from "../../web-components/swap-shared";
 import { readKeystore } from "@/lib/miradex-web/idb";
 import { DEFAULT_SLIPPAGE } from "./constants";
 import { validateAddress } from "./helpers";
+import { hasPositiveOutput, smallestQuoteMinimum } from "./quote-gating";
 import { resolveRefundPolicy, type RefundPolicy } from "./refund-policy";
 import type { ProtocolFilter, ProviderGroup, RouteTag, SortMode } from "./types";
 
 const DEFAULT_AMOUNT = "0.005";
 
 export type PickerTarget = "from" | "to" | null;
+
+export type AttentionTarget = "amount" | "destination" | "refund" | null;
 
 export type SwapFormState = {
   readonly tokens: readonly Token[];
@@ -46,6 +49,10 @@ export type SwapFormState = {
   readonly activeQuote: Quote | null;
   readonly quoteTags: ReadonlyMap<string, ReadonlySet<RouteTag>>;
   readonly canSwap: boolean;
+  readonly attention: AttentionTarget;
+  readonly isBelowMinimum: boolean;
+  readonly minimumAmount: string | null;
+  readonly applyMinimumAmount: () => void;
   readonly isSubmitting: boolean;
   readonly submitError: Error | null;
   readonly setAmount: (v: string) => void;
@@ -172,6 +179,7 @@ export function useSwapForm(): SwapFormState {
   const [sortMode, setSortMode] = useState<SortMode>("default");
   const [protocolFilter, setProtocolFilter] = useState<ProtocolFilter>("all");
   const [showSort, setShowSort] = useState(false);
+  const [attention, setAttention] = useState<AttentionTarget>(null);
 
   // URL params first, BTC -> ETH defaults otherwise.
   useEffect(() => {
@@ -243,10 +251,17 @@ export function useSwapForm(): SwapFormState {
     enabled,
   });
 
+  const usableQuotes = useMemo(() => quotes.filter(hasPositiveOutput), [quotes]);
+  const isBelowMinimum = quotes.length > 0 && usableQuotes.length === 0;
+  const minimumAmount = useMemo(
+    () => (isBelowMinimum ? smallestQuoteMinimum(quotes) : null),
+    [isBelowMinimum, quotes],
+  );
+
   const filteredQuotes = useMemo(() => {
-    if (protocolFilter === "all") return quotes;
-    return quotes.filter((q) => q.provider.toLowerCase() === protocolFilter);
-  }, [quotes, protocolFilter]);
+    if (protocolFilter === "all") return usableQuotes;
+    return usableQuotes.filter((q) => q.provider.toLowerCase() === protocolFilter);
+  }, [usableQuotes, protocolFilter]);
 
   const sortedQuotes = useMemo(
     () => sortQuotesByMode(filteredQuotes, sortMode),
@@ -278,9 +293,9 @@ export function useSwapForm(): SwapFormState {
 
   const activeQuote: Quote | null = useMemo(() => {
     if (sortedQuotes.length === 0) return null;
-    const found = quotes.find((q) => quoteId(q) === selectedQuoteId);
+    const found = usableQuotes.find((q) => quoteId(q) === selectedQuoteId);
     return found ?? sortedQuotes[0];
-  }, [quotes, selectedQuoteId, sortedQuotes]);
+  }, [usableQuotes, selectedQuoteId, sortedQuotes]);
 
   const destError = validateAddress(destAddr, to);
   const refundError = validateAddress(refundAddr, from);
@@ -335,8 +350,44 @@ export function useSwapForm(): SwapFormState {
     [pickerTarget, from, to],
   );
 
+  const applyMinimumAmount = useCallback(() => {
+    if (minimumAmount === null) return;
+    setAttention(null);
+    setAmount(minimumAmount);
+    setSelectedQuoteId(undefined);
+  }, [minimumAmount]);
+
+  const updateAmount = useCallback((value: string) => {
+    setAttention(null);
+    setAmount(value);
+  }, []);
+
+  const updateDestAddr = useCallback((value: string) => {
+    setAttention(null);
+    setDestAddr(value);
+  }, []);
+
+  const updateRefundAddr = useCallback((value: string) => {
+    setAttention(null);
+    setRefundAddr(value);
+  }, []);
+
   const handleSubmit = useCallback(() => {
-    if (!canSwap || !activeQuote || !from || !to) return;
+    if (!from || !to || swapMutation.isPending) return;
+    if (isLoading && enabled && !activeQuote) return;
+    if (!activeQuote || amountNum <= 0) {
+      setAttention("amount");
+      return;
+    }
+    if (destAddr.length === 0 || destError.length > 0) {
+      setAttention("destination");
+      return;
+    }
+    if (!refundPolicy.isRefundReady) {
+      setAttention("refund");
+      return;
+    }
+    setAttention(null);
     swapMutation.mutate({
       fromCoin: from.coin,
       fromNetwork: from.network,
@@ -353,12 +404,14 @@ export function useSwapForm(): SwapFormState {
       existingKeystoreId: reuseKeystoreId ?? undefined,
     });
   }, [
-    canSwap,
-    activeQuote,
     from,
     to,
+    isLoading,
+    enabled,
+    activeQuote,
     amountNum,
     destAddr,
+    destError,
     refundPolicy,
     slippage,
     swapMutation,
@@ -394,11 +447,15 @@ export function useSwapForm(): SwapFormState {
     activeQuote,
     quoteTags,
     canSwap,
+    attention,
+    isBelowMinimum,
+    minimumAmount,
+    applyMinimumAmount,
     isSubmitting: swapMutation.isPending,
     submitError: swapMutation.error,
-    setAmount,
-    setDestAddr,
-    setRefundAddr,
+    setAmount: updateAmount,
+    setDestAddr: updateDestAddr,
+    setRefundAddr: updateRefundAddr,
     setRefundToDestination,
     setSlippage,
     setShowSettings,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check } from "lucide-react";
 
 type AddressInputProps = {
@@ -10,6 +10,7 @@ type AddressInputProps = {
   readonly onChange: (value: string) => void;
   readonly error: string;
   readonly helperText?: string;
+  readonly attention?: boolean;
 };
 
 function canReadClipboard(): boolean {
@@ -23,12 +24,20 @@ export function AddressInput({
   onChange,
   error,
   helperText,
+  attention = false,
 }: AddressInputProps) {
   const [showPaste, setShowPaste] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setShowPaste(canReadClipboard());
   }, []);
+
+  useEffect(() => {
+    if (!attention) return;
+    inputRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    inputRef.current?.focus({ preventScroll: true });
+  }, [attention]);
 
   const isValid = value.length > 0 && !error;
 
@@ -43,8 +52,12 @@ export function AddressInput({
       });
   };
 
+  const containerBorder = attention
+    ? "border-[#B41E28] ring-2 ring-[#B41E28]/25"
+    : "border-bg/15";
+
   return (
-    <div className="flex flex-col gap-1.5 rounded-xl border border-bg/15 bg-[#D8C8A2] p-3.5">
+    <div className={`flex flex-col gap-1.5 rounded-xl border ${containerBorder} bg-[#D8C8A2] p-3.5`}>
       <div className="flex items-center justify-between">
         <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-bg">
           {label}
@@ -58,6 +71,7 @@ export function AddressInput({
       </div>
       <div className="flex items-center gap-2">
         <input
+          ref={inputRef}
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value.trim())}
@@ -82,7 +96,12 @@ export function AddressInput({
           {error}
         </div>
       )}
-      {!error && helperText && (
+      {!error && attention && (
+        <div className="font-mono text-[10.5px] font-medium leading-relaxed text-[#B41E28]">
+          Needed to start your swap
+        </div>
+      )}
+      {!error && !attention && helperText && (
         <div className="font-mono text-[10.5px] leading-relaxed text-bg/60">{helperText}</div>
       )}
     </div>

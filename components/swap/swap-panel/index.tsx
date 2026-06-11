@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { Loader2, Settings2 } from "lucide-react";
 import { TokenPickerModal } from "../../web-components/token-picker-modal";
 import { FlipButton, SwapRow, formatNumber } from "../../web-components/swap-shared";
@@ -18,6 +19,13 @@ import { SWAP_FORM_QUOTE_ID, useSwapForm } from "./use-swap-form";
 
 export function SwapPanel() {
   const form = useSwapForm();
+  const fromRowRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (form.attention !== "amount") return;
+    fromRowRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    fromRowRef.current?.querySelector("input")?.focus({ preventScroll: true });
+  }, [form.attention]);
 
   return (
     <>
@@ -58,17 +66,24 @@ export function SwapPanel() {
             </header>
 
             <div className="flex flex-col gap-1.5">
-              <SwapRow
-                label="From"
-                token={form.from}
-                amount={form.amount}
-                onAmountChange={(v) => {
-                  form.setAmount(v);
-                  form.setSelectedQuoteId(undefined);
-                }}
-                usd={form.activeQuote?.fromAmountUsd}
-                onPickToken={() => form.setPickerTarget("from")}
-              />
+              <div
+                ref={fromRowRef}
+                className={
+                  form.attention === "amount" ? "rounded-xl ring-2 ring-[#B41E28]/70" : undefined
+                }
+              >
+                <SwapRow
+                  label="From"
+                  token={form.from}
+                  amount={form.amount}
+                  onAmountChange={(v) => {
+                    form.setAmount(v);
+                    form.setSelectedQuoteId(undefined);
+                  }}
+                  usd={form.activeQuote?.fromAmountUsd}
+                  onPickToken={() => form.setPickerTarget("from")}
+                />
+              </div>
 
               <FlipButton onClick={form.handleFlip} />
 
@@ -95,6 +110,24 @@ export function SwapPanel() {
               </div>
             )}
 
+            {form.isBelowMinimum && form.from && (
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-[10px] border border-[#8A5A12]/50 bg-[#8A5A12]/[0.10] px-3.5 py-3">
+                <span className="font-mono text-[10.5px] font-semibold text-[#8A5A12]">
+                  Amount too small for this pair
+                  {form.minimumAmount ? ` — minimum ≈ ${form.minimumAmount} ${form.from.coin}` : ""}
+                </span>
+                {form.minimumAmount && (
+                  <button
+                    type="button"
+                    onClick={form.applyMinimumAmount}
+                    className="shrink-0 rounded-full border border-[#8A5A12]/40 bg-[#8A5A12]/10 px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8A5A12] transition-colors hover:bg-[#8A5A12]/20"
+                  >
+                    Use minimum
+                  </button>
+                )}
+              </div>
+            )}
+
             <div className="mt-3 flex flex-col gap-2">
               <AddressInput
                 label="Destination"
@@ -102,22 +135,24 @@ export function SwapPanel() {
                 value={form.destAddr}
                 onChange={form.setDestAddr}
                 error={form.destError}
+                attention={form.attention === "destination"}
               />
               {form.refundPolicy.showRefundToDestinationToggle && (
                 <RefundToDestinationToggle
                   checked={form.refundToDestination}
-                  coin={form.from?.coin ?? ""}
+                  address={form.destAddr}
                   onChange={form.setRefundToDestination}
                 />
               )}
               {form.refundPolicy.showRefundField && (
                 <AddressInput
-                  label="Refund"
-                  placeholder={`If the swap fails — Your ${form.from?.coin ?? ""} is Auto refunded.`}
+                  label={`Refund — your ${form.from?.coin ?? ""} address`}
+                  placeholder={`Your ${form.from?.coin ?? ""} address`}
                   value={form.refundAddr}
                   onChange={form.setRefundAddr}
                   error={form.refundError}
-                  // helperText={`Only used if the swap fails — your ${form.from?.coin ?? ""} is returned here.`}
+                  helperText={`Only used if the swap fails — your ${form.from?.coin ?? ""} comes straight back here.`}
+                  attention={form.attention === "refund"}
                 />
               )}
             </div>
@@ -125,10 +160,10 @@ export function SwapPanel() {
             <button
               type="button"
               onClick={form.handleSubmit}
-              disabled={!form.canSwap}
+              disabled={form.isSubmitting}
               className="mt-3 w-full rounded-[10px] bg-accent p-[14px] text-[14px] font-semibold text-bg transition-colors duration-150 hover:bg-accent-soft disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-accent"
             >
-              {form.isSubmitting ? "Starting swap…" : "Swap"}
+              {form.isSubmitting ? "Starting swap…" : "Swap Now"}
             </button>
 
             <p className="mt-2 text-center font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-bg/55">
@@ -170,6 +205,7 @@ export function SwapPanel() {
                 isLoading={form.isLoading}
                 protocolFilter={form.protocolFilter}
                 onResetFilter={() => form.setProtocolFilter("all")}
+                message={form.isBelowMinimum ? "Amount below minimum for this pair" : undefined}
               />
             ) : form.activeQuote && form.activeProvider ? (
               <>

@@ -5,9 +5,10 @@ type EmptyRoutesProps = {
   readonly isLoading: boolean;
   readonly protocolFilter: ProtocolFilter;
   readonly onResetFilter: () => void;
+  readonly message?: string;
 };
 
-export function EmptyRoutes({ isLoading, protocolFilter, onResetFilter }: EmptyRoutesProps) {
+export function EmptyRoutes({ isLoading, protocolFilter, onResetFilter, message }: EmptyRoutesProps) {
   if (isLoading) {
     return (
       <div className="rounded-xl border border-line-2 bg-bg/40 p-5 text-center backdrop-blur-md">
@@ -37,7 +38,7 @@ export function EmptyRoutes({ isLoading, protocolFilter, onResetFilter }: EmptyR
   return (
     <div className="rounded-xl border border-line-2 bg-bg/40 p-5 text-center backdrop-blur-md">
       <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-mid">
-        No routes available
+        {message ?? "No routes available"}
       </p>
     </div>
   );
