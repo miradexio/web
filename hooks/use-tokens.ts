@@ -3,126 +3,76 @@
 import { useQuery } from "@tanstack/react-query";
 import type { SwapTokenInfo, SwapTokenMap } from "@miradexio/client";
 import { useApiClient } from "@/hooks/use-api-client";
+import {
+  TOKEN_DISPLAY_NAMES,
+  TOKEN_ICON_FILES,
+} from "../components/web-components/token-icons.generated";
 import type { Token } from "../components/web-components/types";
 
-const TOKEN_METADATA: Record<string, { readonly name: string; readonly icon: string }> = {
-  BTC: {
-    name: "Bitcoin",
-    icon: "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/btc.png",
-  },
-  "BTC-LN": {
-    name: "Bitcoin Lightning",
-    icon: "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/btc.png",
-  },
-  ETH: {
-    name: "Ethereum",
-    icon: "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/eth.png",
-  },
-  USDT: {
-    name: "Tether",
-    icon: "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/usdt.png",
-  },
-  USDC: {
-    name: "USD Coin",
-    icon: "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/usdc.png",
-  },
-  DAI: {
-    name: "Dai",
-    icon: "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/dai.png",
-  },
-  WBTC: {
-    name: "Wrapped Bitcoin",
-    icon: "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/wbtc.png",
-  },
-  LINK: {
-    name: "Chainlink",
-    icon: "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/link.png",
-  },
-  UNI: {
-    name: "Uniswap",
-    icon: "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/uni.png",
-  },
-  AAVE: {
-    name: "Aave",
-    icon: "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/aave.png",
-  },
-  FLIP: {
-    name: "Chainflip",
-    icon: "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/flip.png",
-  },
-  LTC: {
-    name: "Litecoin",
-    icon: "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/ltc.png",
-  },
-  BCH: {
-    name: "Bitcoin Cash",
-    icon: "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/bch.png",
-  },
-  SOL: {
-    name: "Solana",
-    icon: "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/sol.png",
-  },
-  BNB: {
-    name: "BNB",
-    icon: "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/bnb.png",
-  },
-  POL: {
-    name: "Polygon",
-    icon: "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/matic.png",
-  },
-  ARB: {
-    name: "Arbitrum",
-    icon: "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/arb.png",
-  },
-  TRX: {
-    name: "Tron",
-    icon: "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/trx.png",
-  },
-  TON: {
-    name: "Toncoin",
-    icon: "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/ton.png",
-  },
-  wNEAR: {
-    name: "Wrapped NEAR",
-    icon: "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/near.png",
-  },
-  AVAX: {
-    name: "Avalanche",
-    icon: "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/avax.png",
-  },
-  DOGE: {
-    name: "Dogecoin",
-    icon: "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/doge.png",
-  },
-  XRP: {
-    name: "XRP",
-    icon: "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/xrp.png",
-  },
-  OP: {
-    name: "Optimism",
-    icon: "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/op.png",
-  },
-  ATOM: {
-    name: "Cosmos",
-    icon: "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/atom.png",
-  },
-  RUNE: {
-    name: "THORChain",
-    icon: "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/rune.png",
-  },
-  XMR: {
-    name: "Monero",
-    icon: "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/xmr.png",
-  },
+const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
+const TOKEN_NAMES: Readonly<Record<string, string>> = {
+  BTC: "Bitcoin",
+  "BTC-LN": "Bitcoin Lightning",
+  "BTC(OMNI)": "Bitcoin Omni",
+  ETH: "Ethereum",
+  USDT: "Tether",
+  USDC: "USD Coin",
+  DAI: "Dai",
+  WBTC: "Wrapped Bitcoin",
+  LINK: "Chainlink",
+  UNI: "Uniswap",
+  AAVE: "Aave",
+  FLIP: "Chainflip",
+  LTC: "Litecoin",
+  BCH: "Bitcoin Cash",
+  SOL: "Solana",
+  BNB: "BNB",
+  POL: "Polygon",
+  ARB: "Arbitrum",
+  TRX: "Tron",
+  TON: "Toncoin",
+  wNEAR: "Wrapped NEAR",
+  AVAX: "Avalanche",
+  DOGE: "Dogecoin",
+  XRP: "XRP",
+  OP: "Optimism",
+  ATOM: "Cosmos",
+  RUNE: "THORChain",
+  XMR: "Monero",
+  ADA: "Cardano",
+  ZEC: "Zcash",
+  DASH: "Dash",
+  SUI: "Sui",
+  APT: "Aptos",
+  STRK: "Starknet",
+  MON: "Monad",
+  BERA: "Berachain",
+  OKB: "OKB",
+  XPL: "Plasma",
+  ALEO: "Aleo",
+  ADI: "ADI",
 };
 
-function fallbackIcon(symbol: string): string {
-  const trimmed = symbol.split("-")[0]?.toLowerCase() ?? "";
-  return `https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/${trimmed}.png`;
+function monogramDataUri(symbol: string): string {
+  let hash = 0;
+  for (const ch of symbol) hash = (hash * 31 + (ch.codePointAt(0) ?? 0)) >>> 0;
+  const hue = hash % 360;
+  const letters = symbol.replace(/[^a-zA-Z0-9]/g, "").slice(0, 2).toUpperCase() || "?";
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="32" fill="hsl(${hue},45%,38%)"/><text x="32" y="32" dy="0.36em" text-anchor="middle" font-family="ui-monospace,monospace" font-size="${letters.length > 1 ? 22 : 28}" font-weight="700" fill="#fff">${letters}</text></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+function tokenIcon(symbol: string): string {
+  const file = TOKEN_ICON_FILES[symbol];
+  return file ? `${BASE}/coin-icons/tokens/${file}` : monogramDataUri(symbol);
 }
 
 function nameAndIcon(symbol: string): { readonly name: string; readonly icon: string } {
-  return TOKEN_METADATA[symbol] ?? { name: symbol, icon: fallbackIcon(symbol) };
+  return {
+    name: TOKEN_NAMES[symbol] ?? TOKEN_DISPLAY_NAMES[symbol] ?? symbol,
+    icon: tokenIcon(symbol),
+  };
 }
 
 const FALLBACK_TOKENS: readonly Token[] = [
@@ -130,7 +80,7 @@ const FALLBACK_TOKENS: readonly Token[] = [
     coin: "BTC",
     name: "Bitcoin",
     network: "bitcoin",
-    icon: TOKEN_METADATA.BTC.icon,
+    icon: tokenIcon("BTC"),
     hasExternalId: false,
     priceUsd: "78000",
     change24hPct: 1.2,
@@ -139,7 +89,7 @@ const FALLBACK_TOKENS: readonly Token[] = [
     coin: "XMR",
     name: "Monero",
     network: "monero",
-    icon: TOKEN_METADATA.XMR.icon,
+    icon: tokenIcon("XMR"),
     hasExternalId: false,
     priceUsd: "154",
     change24hPct: -0.5,
@@ -148,7 +98,7 @@ const FALLBACK_TOKENS: readonly Token[] = [
     coin: "ETH",
     name: "Ethereum",
     network: "ethereum",
-    icon: TOKEN_METADATA.ETH.icon,
+    icon: tokenIcon("ETH"),
     hasExternalId: false,
     priceUsd: "2350",
     change24hPct: 0.8,
@@ -157,7 +107,7 @@ const FALLBACK_TOKENS: readonly Token[] = [
     coin: "USDT",
     name: "Tether",
     network: "ethereum",
-    icon: TOKEN_METADATA.USDT.icon,
+    icon: tokenIcon("USDT"),
     hasExternalId: false,
     priceUsd: "1.00",
     change24hPct: 0.01,
@@ -166,7 +116,7 @@ const FALLBACK_TOKENS: readonly Token[] = [
     coin: "USDC",
     name: "USD Coin",
     network: "solana",
-    icon: TOKEN_METADATA.USDC.icon,
+    icon: tokenIcon("USDC"),
     hasExternalId: false,
     priceUsd: "1.00",
     change24hPct: 0,
@@ -175,7 +125,7 @@ const FALLBACK_TOKENS: readonly Token[] = [
     coin: "SOL",
     name: "Solana",
     network: "solana",
-    icon: TOKEN_METADATA.SOL.icon,
+    icon: tokenIcon("SOL"),
     hasExternalId: false,
     priceUsd: "145",
     change24hPct: 4.2,
@@ -184,7 +134,7 @@ const FALLBACK_TOKENS: readonly Token[] = [
     coin: "BNB",
     name: "BNB",
     network: "bsc",
-    icon: TOKEN_METADATA.BNB.icon,
+    icon: tokenIcon("BNB"),
     hasExternalId: false,
     priceUsd: "580",
     change24hPct: -1.1,

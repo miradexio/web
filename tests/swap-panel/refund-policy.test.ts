@@ -35,12 +35,23 @@ function buildPolicyInput(overrides: Partial<RefundPolicyInput>): RefundPolicyIn
 }
 
 describe("isEvmNetwork", () => {
-  it.each(["ethereum", "bsc", "polygon", "arbitrum", "avalanche", "base"])(
-    "treats %s as EVM",
-    (network) => {
-      expect(isEvmNetwork(network)).toBe(true);
-    },
-  );
+  it.each([
+    "ethereum",
+    "bsc",
+    "polygon",
+    "arbitrum",
+    "avalanche",
+    "base",
+    "optimism",
+    "gnosis",
+    "scroll",
+    "monad",
+    "bera",
+    "xlayer",
+    "plasma",
+  ])("treats %s as EVM", (network) => {
+    expect(isEvmNetwork(network)).toBe(true);
+  });
 
   it.each(["bitcoin", "monero", "solana", "litecoin"])("treats %s as non-EVM", (network) => {
     expect(isEvmNetwork(network)).toBe(false);

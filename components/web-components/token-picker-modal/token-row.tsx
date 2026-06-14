@@ -1,5 +1,6 @@
 import { Heart } from "lucide-react";
 import type { Token } from "../types";
+import { chainDisplayName } from "./chain-icons";
 import { TokenWithChainBadge } from "./token-with-chain-badge";
 
 type TokenRowProps = {
@@ -22,7 +23,7 @@ export function TokenRow({ token, isFavorite, onSelect, onToggleFavorite }: Toke
         <TokenWithChainBadge token={token} />
         <div className="min-w-0">
           <div className="text-[15px] font-semibold text-ink">{token.coin}</div>
-          <div className="text-[12px] capitalize text-ink-mid">{token.network}</div>
+          <div className="text-[12px] text-ink-mid">{chainDisplayName(token.network)}</div>
         </div>
       </div>
       <div className="flex items-center gap-3">

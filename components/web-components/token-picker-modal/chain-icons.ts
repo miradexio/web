@@ -30,8 +30,45 @@ export const CHAIN_ICONS: Readonly<Record<string, string>> = {
   tron: `${BASE}/coin-icons/Tron.svg`,
   trx: `${BASE}/coin-icons/Tron.svg`,
   tezos: `${BASE}/coin-icons/Tezos.svg`,
+  dash: `${BASE}/coin-icons/Dash.svg`,
+  gnosis: `${BASE}/coin-icons/Gnosis.svg`,
+  zcash: `${BASE}/coin-icons/ZCash.svg`,
+  thorchain: `${BASE}/coin-icons/THORChain.svg`,
+  arbitrum: `${BASE}/coin-icons/chains/arbitrum.png`,
+  base: `${BASE}/coin-icons/chains/base.png`,
+  optimism: `${BASE}/coin-icons/chains/optimism.png`,
+  sui: `${BASE}/coin-icons/chains/sui.png`,
+  aptos: `${BASE}/coin-icons/chains/aptos.png`,
+  starknet: `${BASE}/coin-icons/chains/starknet.png`,
+  monad: `${BASE}/coin-icons/chains/monad.png`,
+  bera: `${BASE}/coin-icons/chains/bera.png`,
+  scroll: `${BASE}/coin-icons/chains/scroll.jpg`,
+  xlayer: `${BASE}/coin-icons/chains/xlayer.png`,
+  plasma: `${BASE}/coin-icons/chains/plasma.png`,
+  aleo: `${BASE}/coin-icons/chains/aleo.png`,
+  adi: `${BASE}/coin-icons/chains/adi.png`,
+  ton: `${BASE}/coin-icons/chains/ton.png`,
+  xrp: `${BASE}/coin-icons/chains/xrp.png`,
 };
 
 export function chainIconKey(chain: string): string {
   return chain.toLowerCase().replace(/[\s_-]/g, "");
+}
+
+const CHAIN_DISPLAY_NAMES: Readonly<Record<string, string>> = {
+  bsc: "BSC",
+  bitcoincash: "Bitcoin Cash",
+  xrp: "XRP",
+  ton: "TON",
+  near: "NEAR",
+  xlayer: "X Layer",
+  bera: "Berachain",
+  adi: "ADI",
+  thorchain: "THORChain",
+};
+
+export function chainDisplayName(chain: string): string {
+  const mapped = CHAIN_DISPLAY_NAMES[chain.toLowerCase()];
+  if (mapped) return mapped;
+  return chain.charAt(0).toUpperCase() + chain.slice(1);
 }

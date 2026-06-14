@@ -10,6 +10,13 @@ const EVM_NETWORKS: ReadonlySet<string> = new Set([
   "arbitrum",
   "avalanche",
   "base",
+  "optimism",
+  "gnosis",
+  "scroll",
+  "monad",
+  "bera",
+  "xlayer",
+  "plasma",
 ]);
 
 export function isEvmNetwork(network: string): boolean {

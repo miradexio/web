@@ -1,6 +1,7 @@
 import { Clock, LayoutGrid, Star } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { ChainIcon } from "./chain-icon";
+import { chainDisplayName } from "./chain-icons";
 import type { Category } from "./types";
 
 type SidebarProps = {
@@ -22,19 +23,6 @@ const CATEGORIES: readonly CategoryItem[] = [
   { id: "favorites", icon: Star, label: "Favorites" },
   { id: "recents", icon: Clock, label: "Recents" },
 ];
-
-const CHAIN_DISPLAY_NAMES: Readonly<Record<string, string>> = {
-  bsc: "BSC",
-  bitcoincash: "Bitcoin Cash",
-  xrp: "XRP",
-  ton: "TON",
-};
-
-function chainDisplayName(chain: string): string {
-  const mapped = CHAIN_DISPLAY_NAMES[chain.toLowerCase()];
-  if (mapped) return mapped;
-  return chain.charAt(0).toUpperCase() + chain.slice(1);
-}
 
 export function Sidebar({
   category,
