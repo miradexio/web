@@ -79,6 +79,15 @@ export function buildAtomicHistoryRow(
   };
 }
 
+export function buildNewFlowHistoryRow(
+  flowId: string,
+  state: EngineState,
+  next: SyncSnapshot,
+): SwapHistoryRow | null {
+  if (state.activeFlow !== "atomic") return null;
+  return buildAtomicHistoryRow(flowId, state, next);
+}
+
 export interface CreatedSwapInfo {
   readonly flowId: string;
   readonly fromCoin: string;

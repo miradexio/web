@@ -7,7 +7,7 @@ import { SWAP_HISTORY_QUERY_KEY } from "@/hooks/use-swap-history";
 import { getRegistry } from "@/lib/miradex-web/registry";
 import { patchKeystoreSwapId } from "@/lib/miradex-web/idb";
 import {
-  buildAtomicHistoryRow,
+  buildNewFlowHistoryRow,
   extractSnapshot,
   isTerminalStatus,
   loadSwapHistory,
@@ -57,9 +57,7 @@ export function useHistorySync(): null {
             await updateSwapHistory(flowId, next);
             mutated = true;
           } else if (next.serverSwapId !== null && next.serverSwapId.length > 0) {
-            // First-seen serverSwapId for this flow. Atomic only;
-            // non-atomic rows are created up-front in useSwap.onSuccess.
-            const row = buildAtomicHistoryRow(flowId, state, next);
+            const row = buildNewFlowHistoryRow(flowId, state, next);
             if (row !== null) {
               await saveSwapHistory(row);
               mutated = true;

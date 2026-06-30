@@ -3,6 +3,7 @@ import type { EngineState } from "@miradexio/client";
 import {
   buildAtomicHistoryRow,
   buildCreatedSwapHistoryRow,
+  buildNewFlowHistoryRow,
   extractSnapshot,
   snapshotsEqual,
   type SwapHistoryRow,
@@ -137,6 +138,45 @@ describe("buildAtomicHistoryRow", () => {
     expect(row).not.toBeNull();
     expect(row?.destAddress).toBe("4XMRDEST");
     expect(row?.serverSwapId).toBe("MIRA-ATOM001");
+  });
+});
+
+describe("buildNewFlowHistoryRow", () => {
+  it("returns null for a non-atomic flow even when a serverSwapId is present", () => {
+    const state = buildEngineState({
+      activeFlow: "swap",
+      swapSnapshot: buildSnapshot({
+        fromToken: "SOL",
+        toToken: "LTC",
+        provider: "near_intents",
+        swapId: "MIRA-NEARX1",
+        swapNumber: "MIRA-NEARX1",
+      }),
+    });
+    const next = extractSnapshot(state);
+    expect(next.serverSwapId).toBe("MIRA-NEARX1");
+    expect(buildNewFlowHistoryRow("MIRA-NEARX1", state, next)).toBeNull();
+  });
+
+  it("builds the atomicswap row for an atomic flow", () => {
+    const atomicSnapshot = buildSnapshot({
+      destAddress: "4XMRDEST",
+      swapId: "MIRA-ATOM001",
+      swapNumber: "MIRA-ATOM001",
+    });
+    const state = buildEngineState({
+      activeFlow: "atomic",
+      atomicPhase: "swapping",
+      atomicSnapshot,
+      swapSnapshot: null,
+      swapPhase: "idle",
+    });
+    const next = extractSnapshot(state);
+    const row = buildNewFlowHistoryRow("flow-1", state, next);
+    expect(row).not.toBeNull();
+    expect(row?.provider).toBe("atomicswap");
+    expect(row?.fromCoin).toBe("BTC");
+    expect(row?.toCoin).toBe("XMR");
   });
 });
 
